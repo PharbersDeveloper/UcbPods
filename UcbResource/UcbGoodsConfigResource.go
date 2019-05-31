@@ -18,7 +18,7 @@ type UcbGoodsConfigResource struct {
 	UcbHospitalSalesReportStorage		*UcbDataStorage.UcbHospitalSalesReportStorage
 	UcbRepresentativeSalesReportStorage	*UcbDataStorage.UcbRepresentativeSalesReportStorage
 	UcbSalesConfigStorage 				*UcbDataStorage.UcbSalesConfigStorage
-	UcbBusinessinputStorage				*UcbDataStorage.UcbBusinessinputStorage
+	UcbGoodsinputStorage				*UcbDataStorage.UcbGoodsinputStorage
 }
 
 func (s UcbGoodsConfigResource) NewGoodsConfigResource(args []BmDataStorage.BmStorage) *UcbGoodsConfigResource {
@@ -28,7 +28,7 @@ func (s UcbGoodsConfigResource) NewGoodsConfigResource(args []BmDataStorage.BmSt
 	var hsr *UcbDataStorage.UcbHospitalSalesReportStorage
 	var rsr *UcbDataStorage.UcbRepresentativeSalesReportStorage
 	var sc *UcbDataStorage.UcbSalesConfigStorage
-	var bis *UcbDataStorage.UcbBusinessinputStorage
+	var gis *UcbDataStorage.UcbGoodsinputStorage
 
 	for _, arg := range args {
 		tp := reflect.ValueOf(arg).Elem().Type()
@@ -44,8 +44,8 @@ func (s UcbGoodsConfigResource) NewGoodsConfigResource(args []BmDataStorage.BmSt
 			rsr = arg.(*UcbDataStorage.UcbRepresentativeSalesReportStorage)
 		} else if tp.Name() == "UcbSalesConfigStorage" {
 			sc = arg.(*UcbDataStorage.UcbSalesConfigStorage)
-		} else if tp.Name() == "UcbBusinessinputStorage" {
-			bis = arg.(*UcbDataStorage.UcbBusinessinputStorage)
+		} else if tp.Name() == "UcbGoodsinputStorage" {
+			gis = arg.(*UcbDataStorage.UcbGoodsinputStorage)
 		}
 	}
 	return &UcbGoodsConfigResource{
@@ -55,7 +55,7 @@ func (s UcbGoodsConfigResource) NewGoodsConfigResource(args []BmDataStorage.BmSt
 		UcbHospitalSalesReportStorage : hsr,
 		UcbRepresentativeSalesReportStorage: rsr,
 		UcbSalesConfigStorage: sc,
-		UcbBusinessinputStorage: bis,
+		UcbGoodsinputStorage: gis,
 	}
 }
 
@@ -64,7 +64,7 @@ func (s UcbGoodsConfigResource) FindAll(r api2go.Request) (api2go.Responder, err
 	hospitalSalesReportsID, hsrok := r.QueryParams["hospitalSalesReportsID"]
 	representativeSalesReportsID, rsrok := r.QueryParams["representativeSalesReportsID"]
 	salesConfigsID, scok := r.QueryParams["salesConfigsID"]
-	businessinputsID, bok := r.QueryParams["businessinputsID"]
+	goosinputsID, gok := r.QueryParams["goosinputsID"]
 
 	if psrok {
 		modelRootID := productSalesReportsID[0]
@@ -122,9 +122,9 @@ func (s UcbGoodsConfigResource) FindAll(r api2go.Request) (api2go.Responder, err
 		return &Response{Res: model}, nil
 	}
 
-	if bok {
-		modelRootID := businessinputsID[0]
-		modelRoot, err := s.UcbBusinessinputStorage.GetOne(modelRootID)
+	if gok {
+		modelRootID := goosinputsID[0]
+		modelRoot, err := s.UcbGoodsinputStorage.GetOne(modelRootID)
 		if err != nil {
 			return &Response{}, nil
 		}

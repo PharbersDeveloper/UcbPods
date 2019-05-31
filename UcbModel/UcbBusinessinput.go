@@ -9,8 +9,6 @@ import (
 type Businessinput struct {
 	ID               string        `json:"-"`
 	Id_              bson.ObjectId `json:"-" bson:"_id"`
-	SalesTarget      float64       `json:"sales-target" bson:"sales-target"`
-	Budget           float64       `json:"budget" bson:"budget"`
 	MeetingPlaces    float64       `json:"meeting-places" bson:"meeting-places"`
 	VisitTime        float64       `json:"visit-time" bson:"visit-time"`
 
@@ -18,8 +16,8 @@ type Businessinput struct {
 	DestConfig 		 *DestConfig 	`json:"-"`
 	ResourceConfigId string        `json:"resource-config-id" bson:"resource-config-id"`
 	ResourceConfig   *ResourceConfig `json:"-"`
-	GoodsConfigId 	 string		   `json:"goods-config-id" bson:"goods-config-id"`
-	GoodsConfig 	 *GoodsConfig	`json:"-"`
+	GoodsInputIds	 []string		   `json:"goods-input-id" bson:"goods-input-id"`
+	GoodsInputs		 []*Goodsinput	`json:"-"`
 }
 
 // GetID to satisfy jsonapi.MarshalIdentifier interface
@@ -45,8 +43,8 @@ func (u Businessinput) GetReferences() []jsonapi.Reference {
 			Name: "resourceConfig",
 		},
 		{
-			Type: "goodsConfigs",
-			Name: "goodsConfig",
+			Type: "goodsinputs",
+			Name: "goodsinputs",
 		},
 	}
 }
@@ -70,14 +68,13 @@ func (u Businessinput) GetReferencedIDs() []jsonapi.ReferenceID {
 		})
 	}
 
-	if u.GoodsConfigId != "" {
+	for _, kID := range u.GoodsInputIds {
 		result = append(result, jsonapi.ReferenceID{
-			ID:   u.GoodsConfigId,
-			Type: "goodsConfigs",
-			Name: "goodsConfig",
+			ID:   kID,
+			Type: "goodsinputs",
+			Name: "goodsinputs",
 		})
 	}
-
 
 	return result
 }
@@ -94,10 +91,9 @@ func (u Businessinput) GetReferencedStructs() []jsonapi.MarshalIdentifier {
 		result = append(result, u.ResourceConfig)
 	}
 
-	if u.ResourceConfigId != "" && u.ResourceConfig != nil {
-		result = append(result, u.ResourceConfig)
+	for key := range u.GoodsInputs {
+		result = append(result, u.GoodsInputs[key])
 	}
-
 
 	return result
 }
@@ -113,12 +109,15 @@ func (u *Businessinput) SetToOneReferenceID(name, ID string) error {
 		return nil
 	}
 
-	if name == "goodsConfig" {
-		u.GoodsConfigId = ID
+	return errors.New("There is no to-one relationship with the name " + name)
+}
+
+func (u *Businessinput) SetToManyReferenceIDs(name string, IDs []string) error {
+	if name == "goodsinputs" {
+		u.GoodsInputIds = IDs
 		return nil
 	}
-
-	return errors.New("There is no to-one relationship with the name " + name)
+	return errors.New("There is no to-many relationship with the name " + name)
 }
 
 func (u *Businessinput) GetConditionsBsonM(parameters map[string][]string) bson.M {

@@ -57,6 +57,7 @@ var NTM_MODEL_FACTORY = map[string]interface{}{
 	"UcbAssessmentReport":			UcbModel.AssessmentReport{},
 	"UcbTitle":						UcbModel.Title{},
 	"UcbGeneralPerformanceResult":	UcbModel.GeneralPerformanceResult{},
+	"UcbGoodsinput":				UcbModel.Goodsinput{},
 }
 
 var NTM_STORAGE_FACTORY = map[string]interface{}{
@@ -105,6 +106,7 @@ var NTM_STORAGE_FACTORY = map[string]interface{}{
 	"UcbAssessmentReportStorage":			UcbDataStorage.UcbAssessmentReportStorage{},
 	"UcbTitleStorage":						UcbDataStorage.UcbTitleStorage{},
 	"UcbGeneralPerformanceResultStorage":	UcbDataStorage.UcbGeneralPerformanceResultStorage{},
+	"UcbGoodsinputStorage":					UcbDataStorage.UcbGoodsinputStorage{},
 }
 
 var NTM_RESOURCE_FACTORY = map[string]interface{}{
@@ -155,6 +157,7 @@ var NTM_RESOURCE_FACTORY = map[string]interface{}{
 	"UcbAssessmentReportResource":			UcbResource.UcbAssessmentReportResource{},
 	"UcbTitleResource":						UcbResource.UcbTitleResource{},
 	"UcbGeneralPerformanceResultResource":	UcbResource.UcbGeneralPerformanceResultResource{},
+	"UcbGoodsinputResource":				UcbResource.UcbGoodsinputResource{},
 }
 
 var NTM_FUNCTION_FACTORY = map[string]interface{}{
