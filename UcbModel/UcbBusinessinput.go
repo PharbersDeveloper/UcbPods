@@ -12,12 +12,12 @@ type Businessinput struct {
 	MeetingPlaces    float64       `json:"meeting-places" bson:"meeting-places"`
 	VisitTime        float64       `json:"visit-time" bson:"visit-time"`
 
-	DestConfigId     string        `json:"dest-config-id" bson:"dest-config-id"`
-	DestConfig 		 *DestConfig 	`json:"-"`
-	ResourceConfigId string        `json:"resource-config-id" bson:"resource-config-id"`
+	DestConfigId     string         `json:"dest-config-id" bson:"dest-config-id"`
+	DestConfig 		 *DestConfig 	 `json:"-"`
+	ResourceConfigId string          `json:"resource-config-id" bson:"resource-config-id"`
 	ResourceConfig   *ResourceConfig `json:"-"`
-	GoodsInputIds	 []string		   `json:"goods-input-id" bson:"goods-input-id"`
-	GoodsInputs		 []*Goodsinput	`json:"-"`
+	GoodsInputIds	 []string		 `json:"-" bson:"goods-input-id"`
+	GoodsInputs		 []*Goodsinput	 `json:"-"`
 }
 
 // GetID to satisfy jsonapi.MarshalIdentifier interface

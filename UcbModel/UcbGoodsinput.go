@@ -12,7 +12,8 @@ type Goodsinput struct {
 	SalesTarget      float64       `json:"sales-target" bson:"sales-target"`
 	Budget           float64       `json:"budget" bson:"budget"`
 
-	GoodsConfigId 	 string		   `json:"goods-config-id" bson:"goods-config-id"`
+	DestConfigId 	 string 		`json:"dest-config-id" bson:"dest-config-id"`
+	GoodsConfigId 	 string		    `json:"goods-config-id" bson:"goods-config-id"`
 	GoodsConfig 	 *GoodsConfig	`json:"-"`
 }
 

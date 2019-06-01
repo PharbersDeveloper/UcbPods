@@ -86,7 +86,7 @@ func (c UcbScenarioResource) FindAll(r api2go.Request) (api2go.Responder, error)
 		}
 		totalPhase := proposalModel.TotalPhase
 
-		if paperModel.InputState == 1 {
+		if paperModel.InputState == 1 ||paperModel.InputState == 4 {
 			r.QueryParams["phase"] = []string{strconv.Itoa(lastPhase)}
 			result = c.UcbScenarioStorage.GetAll(r, -1, -1)
 		} else if paperModel.InputState == 2 && lastPhase != totalPhase {

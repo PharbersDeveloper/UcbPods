@@ -64,7 +64,7 @@ func (s UcbGoodsConfigResource) FindAll(r api2go.Request) (api2go.Responder, err
 	hospitalSalesReportsID, hsrok := r.QueryParams["hospitalSalesReportsID"]
 	representativeSalesReportsID, rsrok := r.QueryParams["representativeSalesReportsID"]
 	salesConfigsID, scok := r.QueryParams["salesConfigsID"]
-	goosinputsID, gok := r.QueryParams["goosinputsID"]
+	goodsinputsID, gok := r.QueryParams["goodsinputsID"]
 
 	if psrok {
 		modelRootID := productSalesReportsID[0]
@@ -123,7 +123,7 @@ func (s UcbGoodsConfigResource) FindAll(r api2go.Request) (api2go.Responder, err
 	}
 
 	if gok {
-		modelRootID := goosinputsID[0]
+		modelRootID := goodsinputsID[0]
 		modelRoot, err := s.UcbGoodsinputStorage.GetOne(modelRootID)
 		if err != nil {
 			return &Response{}, nil
