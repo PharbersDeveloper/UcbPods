@@ -17,6 +17,7 @@ type UcbHospitalConfigResource struct {
 	UcbPolicyStorage 			*UcbDataStorage.UcbPolicyStorage
 	UcbDepartmentStorage 		*UcbDataStorage.UcbDepartmentStorage
 	UcbDestConfigStorage 		*UcbDataStorage.UcbDestConfigStorage
+	UcbCityStorage				*UcbDataStorage.UcbCityStorage
 }
 
 func (s UcbHospitalConfigResource) NewHospitalConfigResource(args []BmDataStorage.BmStorage) *UcbHospitalConfigResource {
@@ -25,6 +26,7 @@ func (s UcbHospitalConfigResource) NewHospitalConfigResource(args []BmDataStorag
 	var ps *UcbDataStorage.UcbPolicyStorage
 	var ds *UcbDataStorage.UcbDepartmentStorage
 	var dcs *UcbDataStorage.UcbDestConfigStorage
+	var cs *UcbDataStorage.UcbCityStorage
 
 	for _, arg := range args {
 		tp := reflect.ValueOf(arg).Elem().Type()
@@ -39,6 +41,8 @@ func (s UcbHospitalConfigResource) NewHospitalConfigResource(args []BmDataStorag
 			ds = arg.(*UcbDataStorage.UcbDepartmentStorage)
 		} else if tp.Name() == "UcbDestConfigStorage" {
 			dcs = arg.(*UcbDataStorage.UcbDestConfigStorage)
+		} else if tp.Name() == "UcbCityStorage" {
+			cs = arg.(*UcbDataStorage.UcbCityStorage)
 		}
 	}
 	return &UcbHospitalConfigResource{
@@ -47,11 +51,14 @@ func (s UcbHospitalConfigResource) NewHospitalConfigResource(args []BmDataStorag
 		UcbPolicyStorage: ps,
 		UcbDepartmentStorage: ds,
 		UcbDestConfigStorage: dcs,
+		UcbCityStorage: cs,
 	}
 }
 
 func (s UcbHospitalConfigResource) FindAll(r api2go.Request) (api2go.Responder, error) {
 	destConfigsID, dcok := r.QueryParams["destConfigsID"]
+
+	citiesID, cok := r.QueryParams["citiesID"]
 
 	if dcok {
 		modelRootID := destConfigsID[0]
@@ -65,6 +72,20 @@ func (s UcbHospitalConfigResource) FindAll(r api2go.Request) (api2go.Responder, 
 			return &Response{}, nil
 		}
 		return &Response{Res: model}, nil
+	}
+
+	if cok {
+		modelRootID := citiesID[0]
+
+		modelRoot, err := s.UcbCityStorage.GetOne(modelRootID)
+		if err != nil {
+			return &Response{}, err
+		}
+		r.QueryParams["ids"] = modelRoot.HospitalConfigIds
+
+		result := s.UcbHospitalConfigStorage.GetAll(r, -1,-1)
+
+		return &Response{Res: result}, nil
 	}
 
 	var result []UcbModel.HospitalConfig

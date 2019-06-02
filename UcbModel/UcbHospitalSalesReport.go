@@ -29,6 +29,14 @@ type HospitalSalesReport struct {
 	SalesGrowth		float64	`json:"sales-growth" bson:"sales-growth"`
 
 	QuotaContribute float64 `json:"quota-contribute" bson:"quota-contribute"`
+	QuotaGrowth		float64	`json:"quota-growth" bson:"quota-growth"`
+	YTDSales		float64	`json:"ytd-sales" bson:"ytd-sales"`
+	SalesContribute	float64	`json:"sales-contribute" bson:"sales-contribute"`
+	SalesYearOnYear	float64	`json:"sales-year-on-year" bson:"sales-year-on-year"`
+	SalesMonthOnMonth float64	`json:"sales-month-on-month" bson:"sales-month-on-month"`
+	DrugEntranceInfo  string	`json:"drug-entrance-info" bson:"drug-entrance-info"`
+
+
 }
 
 // GetID to satisfy jsonapi.MarshalIdentifier interface

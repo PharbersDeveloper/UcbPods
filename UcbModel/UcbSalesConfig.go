@@ -13,10 +13,8 @@ type SalesConfig struct {
 	ScenarioId 		string        `json:"-" bson:"scenario-id"`
 
 	AccessStatus   	string  `json:"access-status" bson:"access-status"`
-	//Sales 		float64 `json:"sales"`
-	//Potential     	float64 `json:"potential"`
 	SalesTarget		float64	`json:"sales-target" bson:"sales-target"`
-
+	PatientCount	int 	`json:"patient-count" bson:"patient-count"`
 	DestConfigID    string   `json:"-" bson:"dest-config-id"`
 	GoodsConfigID	string 	 `json:"-" bson:"goods-config-id"`
 	SalesReportID 	string 	 `json:"-" `//bson:"sales-report-id"

@@ -19,6 +19,7 @@ type UcbManagerConfigResource struct {
 func (c UcbManagerConfigResource) NewManagerConfigResource(args []BmDataStorage.BmStorage) *UcbManagerConfigResource {
 	var mcs *UcbDataStorage.UcbManagerConfigStorage
 	var rcs *UcbDataStorage.UcbResourceConfigStorage
+
 	for _, arg := range args {
 		tp := reflect.ValueOf(arg).Elem().Type()
 		if tp.Name() == "UcbManagerConfigStorage" {
@@ -35,7 +36,7 @@ func (c UcbManagerConfigResource) NewManagerConfigResource(args []BmDataStorage.
 
 func (c UcbManagerConfigResource) FindAll(r api2go.Request) (api2go.Responder, error) {
 	resourceConfigsID, rcok := r.QueryParams["resourceConfigsID"]
-	var result []UcbModel.ManagerConfig
+
 	if rcok {
 		modelRootID := resourceConfigsID[0]
 		modelRoot, err := c.UcbResourceConfigStorage.GetOne(modelRootID)
@@ -48,7 +49,8 @@ func (c UcbManagerConfigResource) FindAll(r api2go.Request) (api2go.Responder, e
 		}
 		return &Response{Res: model}, nil
 	}
-	result = c.UcbManagerConfigStorage.GetAll(r, -1, -1)
+
+	result := c.UcbManagerConfigStorage.GetAll(r, -1, -1)
 	return &Response{Res: result}, nil
 }
 

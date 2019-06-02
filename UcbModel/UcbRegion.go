@@ -12,6 +12,8 @@ type Region struct {
 	Name     string        `json:"name" bson:"name"`
 	Describe string        `json:"describe" bson:"describe"`
 
+	CityId	string `json:"city-id" bson:"city-id"`
+	City 	*City  `json:"-"`
 	ImagesIDs []string `json:"-" bson:"image-ids"`
 	Imgs      []*Image `json:"-"`
 }
@@ -31,6 +33,10 @@ func (c Region) GetReferences() []jsonapi.Reference {
 			Type: "images",
 			Name: "images",
 		},
+		{
+			Type: "cities",
+			Name: "city",
+		},
 	}
 }
 
@@ -44,6 +50,14 @@ func (c Region) GetReferencedIDs() []jsonapi.ReferenceID {
 			Name: "images",
 		})
 	}
+
+	if c.CityId != "" {
+		result = append(result, jsonapi.ReferenceID{
+			ID:   c.CityId,
+			Type: "cities",
+			Name: "city",
+		})
+	}
 	return result
 }
 
@@ -53,7 +67,20 @@ func (c Region) GetReferencedStructs() []jsonapi.MarshalIdentifier {
 	for key := range c.Imgs {
 		result = append(result, c.Imgs[key])
 	}
+
+	if c.CityId != "" && c.City != nil {
+		result = append(result, c.City)
+	}
 	return result
+}
+
+func (u *Region) SetToOneReferenceID(name, ID string) error {
+	if name == "city" {
+		u.CityId = ID
+		return nil
+	}
+
+	return errors.New("There is no to-one relationship with the name " + name)
 }
 
 func (c *Region) SetToManyReferenceIDs(name string, IDs []string) error {
