@@ -12,8 +12,8 @@ type City struct {
 	Name     				string        `json:"name" bson:"name"`
 	Level	 				string        `json:"level" bson:"level"`
 	Type	 				string        `json:"type" bson:"type"`
-	LocalPatientRatio 		string        `json:"local-patient-ration" bson:"local-patient-ration"`
-	NonLocalPatientRatio 	string        `json:"nonlocal-patient-ration" bson:"nonlocal-patient-ration"`
+	LocalPatientRatio 		float64       `json:"local-patient-ratio" bson:"local-patient-ratio"`
+	NonLocalPatientRatio 	float64       `json:"nonlocal-patient-ratio" bson:"nonlocal-patient-ratio"`
 
 
 
