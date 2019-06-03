@@ -49,7 +49,7 @@ func (s UcbRegionResource) FindAll(r api2go.Request) (api2go.Responder, error) {
 		if err != nil {
 			return &Response{}, nil
 		}
-		model, err := s.UcbRegionConfigStorage.GetOne(modelRoot.RegionID)
+		model, err := s.UcbRegionStorage.GetOne(modelRoot.RegionID)
 		if err != nil {
 			return &Response{}, nil
 		}

@@ -36,24 +36,24 @@ func (c *ManagerConfig) SetID(id string) error {
 }
 
 // GetReferences to satisfy the jsonapi.MarshalReferences interface
-func (u *ManagerConfig) GetReferences() []jsonapi.Reference {
+func (u ManagerConfig) GetReferences() []jsonapi.Reference {
 	return []jsonapi.Reference{
 		{
 			Type: "managerGoodsConfigs",
-			Name: "managerGoodsConfig",
+			Name: "managerGoodsConfigs",
 		},
 	}
 }
 
 // GetReferencedIDs to satisfy the jsonapi.MarshalLinkedRelations interface
-func (c *ManagerConfig) GetReferencedIDs() []jsonapi.ReferenceID {
+func (c ManagerConfig) GetReferencedIDs() []jsonapi.ReferenceID {
 	result := []jsonapi.ReferenceID{}
 
 	for _, kID := range c.ManagerGoodsConfigIds {
 		result = append(result, jsonapi.ReferenceID{
 			ID:   kID,
 			Type: "managerGoodsConfigs",
-			Name: "managerGoodsConfig",
+			Name: "managerGoodsConfigs",
 		})
 	}
 
@@ -61,7 +61,7 @@ func (c *ManagerConfig) GetReferencedIDs() []jsonapi.ReferenceID {
 }
 
 // GetReferencedStructs to satisfy the jsonapi.MarhsalIncludedRelations interface
-func (c *ManagerConfig) GetReferencedStructs() []jsonapi.MarshalIdentifier {
+func (c ManagerConfig) GetReferencedStructs() []jsonapi.MarshalIdentifier {
 	result := []jsonapi.MarshalIdentifier{}
 
 	for key := range c.ManagerGoodsConfigs {

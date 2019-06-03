@@ -19,6 +19,7 @@ type UcbGoodsConfigResource struct {
 	UcbRepresentativeSalesReportStorage	*UcbDataStorage.UcbRepresentativeSalesReportStorage
 	UcbSalesConfigStorage 				*UcbDataStorage.UcbSalesConfigStorage
 	UcbGoodsinputStorage				*UcbDataStorage.UcbGoodsinputStorage
+	UcbManagerGoodsConfigStorage		*UcbDataStorage.UcbManagerGoodsConfigStorage
 }
 
 func (s UcbGoodsConfigResource) NewGoodsConfigResource(args []BmDataStorage.BmStorage) *UcbGoodsConfigResource {
@@ -29,6 +30,7 @@ func (s UcbGoodsConfigResource) NewGoodsConfigResource(args []BmDataStorage.BmSt
 	var rsr *UcbDataStorage.UcbRepresentativeSalesReportStorage
 	var sc *UcbDataStorage.UcbSalesConfigStorage
 	var gis *UcbDataStorage.UcbGoodsinputStorage
+	var mgcs *UcbDataStorage.UcbManagerGoodsConfigStorage
 
 	for _, arg := range args {
 		tp := reflect.ValueOf(arg).Elem().Type()
@@ -46,6 +48,8 @@ func (s UcbGoodsConfigResource) NewGoodsConfigResource(args []BmDataStorage.BmSt
 			sc = arg.(*UcbDataStorage.UcbSalesConfigStorage)
 		} else if tp.Name() == "UcbGoodsinputStorage" {
 			gis = arg.(*UcbDataStorage.UcbGoodsinputStorage)
+		} else if tp.Name() == "UcbManagerGoodsConfigStorage" {
+			mgcs = arg.(*UcbDataStorage.UcbManagerGoodsConfigStorage)
 		}
 	}
 	return &UcbGoodsConfigResource{
@@ -56,6 +60,7 @@ func (s UcbGoodsConfigResource) NewGoodsConfigResource(args []BmDataStorage.BmSt
 		UcbRepresentativeSalesReportStorage: rsr,
 		UcbSalesConfigStorage: sc,
 		UcbGoodsinputStorage: gis,
+		UcbManagerGoodsConfigStorage: mgcs,
 	}
 }
 
@@ -65,6 +70,9 @@ func (s UcbGoodsConfigResource) FindAll(r api2go.Request) (api2go.Responder, err
 	representativeSalesReportsID, rsrok := r.QueryParams["representativeSalesReportsID"]
 	salesConfigsID, scok := r.QueryParams["salesConfigsID"]
 	goodsinputsID, gok := r.QueryParams["goodsinputsID"]
+	managerGoodsConfigsID, mgcok := r.QueryParams["managerGoodsConfigsID"]
+
+
 
 	if psrok {
 		modelRootID := productSalesReportsID[0]
@@ -125,6 +133,22 @@ func (s UcbGoodsConfigResource) FindAll(r api2go.Request) (api2go.Responder, err
 	if gok {
 		modelRootID := goodsinputsID[0]
 		modelRoot, err := s.UcbGoodsinputStorage.GetOne(modelRootID)
+		if err != nil {
+			return &Response{}, nil
+		}
+
+		result, err := s.UcbGoodsConfigStorage.GetOne(modelRoot.GoodsConfigId)
+
+		if err != nil {
+			return &Response{}, nil
+		}
+
+		return &Response{Res: result}, nil
+	}
+
+	if mgcok {
+		modelRootID := managerGoodsConfigsID[0]
+		modelRoot, err := s.UcbManagerGoodsConfigStorage.GetOne(modelRootID)
 		if err != nil {
 			return &Response{}, nil
 		}

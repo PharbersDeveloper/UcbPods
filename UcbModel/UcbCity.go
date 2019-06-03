@@ -17,7 +17,7 @@ type City struct {
 
 
 
-	HospitalConfigIds 		[]string 			`json:"-" bson:"City-config-ids"`
+	HospitalConfigIds 		[]string 			`json:"-" bson:"hospital-config-ids"`
 	HospitalConfigs			[]*HospitalConfig 	`json:"-"`
 	ImageIds 				[]string			`json:"-" bson:"image-ids"`
 	Images 					[]*Image 			`json:"-"`

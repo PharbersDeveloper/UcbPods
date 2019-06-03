@@ -12,10 +12,10 @@ type Region struct {
 	Name     string        `json:"name" bson:"name"`
 	Describe string        `json:"describe" bson:"describe"`
 
-	CityId	string `json:"city-id" bson:"city-id"`
-	City 	*City  `json:"-"`
-	ImagesIDs []string `json:"-" bson:"image-ids"`
-	Imgs      []*Image `json:"-"`
+	CityIds		[]string `json:"-" bson:"city-ids"`
+	Cities 		[]*City  `json:"-"`
+	ImagesIDs 	[]string `json:"-" bson:"image-ids"`
+	Imgs      	[]*Image `json:"-"`
 }
 
 func (c Region) GetID() string {
@@ -35,7 +35,7 @@ func (c Region) GetReferences() []jsonapi.Reference {
 		},
 		{
 			Type: "cities",
-			Name: "city",
+			Name: "cities",
 		},
 	}
 }
@@ -51,13 +51,14 @@ func (c Region) GetReferencedIDs() []jsonapi.ReferenceID {
 		})
 	}
 
-	if c.CityId != "" {
+	for _, kID := range c.CityIds {
 		result = append(result, jsonapi.ReferenceID{
-			ID:   c.CityId,
+			ID:   kID,
 			Type: "cities",
-			Name: "city",
+			Name: "cities",
 		})
 	}
+
 	return result
 }
 
@@ -68,24 +69,21 @@ func (c Region) GetReferencedStructs() []jsonapi.MarshalIdentifier {
 		result = append(result, c.Imgs[key])
 	}
 
-	if c.CityId != "" && c.City != nil {
-		result = append(result, c.City)
+	for key := range c.Cities {
+		result = append(result, c.Cities[key])
 	}
+
 	return result
-}
-
-func (u *Region) SetToOneReferenceID(name, ID string) error {
-	if name == "city" {
-		u.CityId = ID
-		return nil
-	}
-
-	return errors.New("There is no to-one relationship with the name " + name)
 }
 
 func (c *Region) SetToManyReferenceIDs(name string, IDs []string) error {
 	if name == "images" {
 		c.ImagesIDs = IDs
+		return nil
+	}
+
+	if name == "cities" {
+		c.CityIds = IDs
 		return nil
 	}
 	return errors.New("There is no to-many relationship with the name " + name)
@@ -97,18 +95,10 @@ func (c *Region) AddToManyIDs(name string, IDs []string) error {
 		return nil
 	}
 
-	return errors.New("There is no to-many relationship with the name " + name)
-}
+	if name == "cities" {
+		c.CityIds = append(c.CityIds, IDs...)
+		return nil
 
-func (c *Region) DeleteToManyIDs(name string, IDs []string) error {
-	if name == "images" {
-		for _, ID := range IDs {
-			for pos, oldID := range c.ImagesIDs {
-				if ID == oldID {
-					c.ImagesIDs = append(c.ImagesIDs[:pos], c.ImagesIDs[pos+1:]...)
-				}
-			}
-		}
 	}
 	return errors.New("There is no to-many relationship with the name " + name)
 }

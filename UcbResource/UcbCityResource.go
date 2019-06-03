@@ -46,11 +46,10 @@ func (c UcbCityResource) FindAll(r api2go.Request) (api2go.Responder, error) {
 		if err != nil {
 			return  &Response{}, nil
 		}
-		result, err := c.UcbCityStorage.GetOne(modelRoot.CityId)
 
-		if err != nil {
-			return  &Response{}, nil
-		}
+		r.QueryParams["ids"] = modelRoot.CityIds
+
+		result := c.UcbCityStorage.GetAll(r, -1, -1)
 
 		return &Response{Res: result}, nil
 	}
