@@ -14,11 +14,17 @@ import (
 type UcbHospitalSalesReportResource struct {
 	UcbHospitalSalesReportStorage       *UcbDataStorage.UcbHospitalSalesReportStorage
 	UcbSalesReportStorage               *UcbDataStorage.UcbSalesReportStorage
+	UcbDestConfigStorage				*UcbDataStorage.UcbDestConfigStorage
+	UcbGoodsConfigStorage				*UcbDataStorage.UcbGoodsConfigStorage
+	UcbResourceConfigStorage			*UcbDataStorage.UcbResourceConfigStorage
 }
 
 func (c UcbHospitalSalesReportResource) NewHospitalSalesReportResource(args []BmDataStorage.BmStorage) *UcbHospitalSalesReportResource {
-	var hsr  *UcbDataStorage.UcbHospitalSalesReportStorage
-	var sr *UcbDataStorage.UcbSalesReportStorage
+	var hsr	*UcbDataStorage.UcbHospitalSalesReportStorage
+	var sr 	*UcbDataStorage.UcbSalesReportStorage
+	var dcs	*UcbDataStorage.UcbDestConfigStorage
+	var gcs	*UcbDataStorage.UcbGoodsConfigStorage
+	var rcs	*UcbDataStorage.UcbResourceConfigStorage
 
 	for _, arg := range args {
 		tp := reflect.ValueOf(arg).Elem().Type()
@@ -26,11 +32,20 @@ func (c UcbHospitalSalesReportResource) NewHospitalSalesReportResource(args []Bm
 			hsr = arg.(*UcbDataStorage.UcbHospitalSalesReportStorage)
 		} else if tp.Name() == "UcbSalesReportStorage" {
 			sr = arg.(*UcbDataStorage.UcbSalesReportStorage)
+		} else if tp.Name() == "UcbDestConfigStorage" {
+			dcs = arg.(*UcbDataStorage.UcbDestConfigStorage)
+		} else if tp.Name() == "UcbGoodsConfigStorage" {
+			gcs = arg.(*UcbDataStorage.UcbGoodsConfigStorage)
+		} else if tp.Name() == "UcbResourceConfigStorage" {
+			rcs = arg.(*UcbDataStorage.UcbResourceConfigStorage)
 		}
 	}
 	return &UcbHospitalSalesReportResource{
 		UcbHospitalSalesReportStorage: hsr,
 		UcbSalesReportStorage: sr,
+		UcbDestConfigStorage: dcs,
+		UcbGoodsConfigStorage: gcs,
+		UcbResourceConfigStorage: rcs,
 	}
 }
 
@@ -69,6 +84,19 @@ func (c UcbHospitalSalesReportResource) FindAll(r api2go.Request) (api2go.Respon
 // FindOne choc
 func (c UcbHospitalSalesReportResource) FindOne(ID string, r api2go.Request) (api2go.Responder, error) {
 	res, err := c.UcbHospitalSalesReportStorage.GetOne(ID)
+
+	if err != nil {
+		return &Response{}, err
+	}
+
+	dm, _ := c.UcbDestConfigStorage.GetOne(res.DestConfigID)
+	gm, _ := c.UcbGoodsConfigStorage.GetOne(res.GoodsConfigID)
+	rm, _ := c.UcbResourceConfigStorage.GetOne(res.ResourceConfigID)
+
+	res.DestConfig = &dm
+	res.GoodsConfig = &gm
+	res.ResourceConfig = &rm
+
 	return &Response{Res: res}, err
 }
 

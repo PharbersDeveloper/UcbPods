@@ -14,11 +14,13 @@ import (
 type UcbRepresentativeSalesReportResource struct {
 	UcbRepresentativeSalesReportStorage *UcbDataStorage.UcbRepresentativeSalesReportStorage
 	UcbSalesReportStorage               *UcbDataStorage.UcbSalesReportStorage
+	UcbResourceConfigStorage			*UcbDataStorage.UcbResourceConfigStorage
 }
 
 func (c UcbRepresentativeSalesReportResource) NewRepresentativeSalesReportResource(args []BmDataStorage.BmStorage) *UcbRepresentativeSalesReportResource {
-	var psr  *UcbDataStorage.UcbRepresentativeSalesReportStorage
-	var sr *UcbDataStorage.UcbSalesReportStorage
+	var psr *UcbDataStorage.UcbRepresentativeSalesReportStorage
+	var sr 	*UcbDataStorage.UcbSalesReportStorage
+	var rcs *UcbDataStorage.UcbResourceConfigStorage
 
 	for _, arg := range args {
 		tp := reflect.ValueOf(arg).Elem().Type()
@@ -26,11 +28,14 @@ func (c UcbRepresentativeSalesReportResource) NewRepresentativeSalesReportResour
 			psr = arg.(*UcbDataStorage.UcbRepresentativeSalesReportStorage)
 		} else if tp.Name() == "UcbSalesReportStorage" {
 			sr = arg.(*UcbDataStorage.UcbSalesReportStorage)
+		} else if tp.Name() == "UcbResourceConfigStorage" {
+			rcs = arg.(*UcbDataStorage.UcbResourceConfigStorage)
 		}
 	}
 	return &UcbRepresentativeSalesReportResource{
 		UcbRepresentativeSalesReportStorage: psr,
 		UcbSalesReportStorage: sr,
+		UcbResourceConfigStorage: rcs,
 	}
 }
 
@@ -63,6 +68,15 @@ func (c UcbRepresentativeSalesReportResource) FindAll(r api2go.Request) (api2go.
 // FindOne choc
 func (c UcbRepresentativeSalesReportResource) FindOne(ID string, r api2go.Request) (api2go.Responder, error) {
 	res, err := c.UcbRepresentativeSalesReportStorage.GetOne(ID)
+
+	if err != nil {
+		return &Response{}, err
+	}
+
+	rm, _ := c.UcbResourceConfigStorage.GetOne(res.ResourceConfigID)
+
+	res.ResourceConfig = &rm
+
 	return &Response{Res: res}, err
 }
 
