@@ -21,7 +21,6 @@ type CitySalesReport struct {
 	SalesContribute	float64	`json:"sales-contribute" bson:"sales-contribute"`
 	SalesYearOnYear	float64	`json:"sales-year-on-year" bson:"sales-year-on-year"`
 	SalesMonthOnMonth float64	`json:"sales-month-on-month" bson:"sales-month-on-month"`
-	DrugEntranceInfo  string	`json:"drug-entrance-info" bson:"drug-entrance-info"`
 	PatientCount	int		`json:"patient-count" bson:"patient-count"`
 
 	CityId		string `json:"-" bson:"city-id"`

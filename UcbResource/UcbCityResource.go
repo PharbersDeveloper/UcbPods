@@ -14,11 +14,13 @@ import (
 type UcbCityResource struct {
 	UcbCityStorage *UcbDataStorage.UcbCityStorage
 	UcbRegionStorage *UcbDataStorage.UcbRegionStorage
+	UcbCitySalesReportStorage *UcbDataStorage.UcbCitySalesReportStorage
 }
 
 func (c UcbCityResource) NewCityResource(args []BmDataStorage.BmStorage) *UcbCityResource {
 	var cs *UcbDataStorage.UcbCityStorage
 	var rs  *UcbDataStorage.UcbRegionStorage
+	var csrs *UcbDataStorage.UcbCitySalesReportStorage
 
 	for _, arg := range args {
 		tp := reflect.ValueOf(arg).Elem().Type()
@@ -26,17 +28,21 @@ func (c UcbCityResource) NewCityResource(args []BmDataStorage.BmStorage) *UcbCit
 			cs = arg.(*UcbDataStorage.UcbCityStorage)
 		} else if tp.Name() == "UcbRegionStorage" {
 			rs = arg.(*UcbDataStorage.UcbRegionStorage)
+		} else if tp.Name() == "UcbCitySalesReportStorage" {
+			csrs = arg.(*UcbDataStorage.UcbCitySalesReportStorage)
 		}
 	}
 	return &UcbCityResource{
 		UcbCityStorage: cs,
 		UcbRegionStorage: rs,
+		UcbCitySalesReportStorage: csrs,
 	}
 }
 
 // FindAll Citys
 func (c UcbCityResource) FindAll(r api2go.Request) (api2go.Responder, error) {
 	regionsID, rok := r.QueryParams["regionsID"]
+	citySalesReportsID, cok := r.QueryParams["citySalesReportsID"]
 
 	if rok {
 		modelRootID := regionsID[0]
@@ -50,6 +56,20 @@ func (c UcbCityResource) FindAll(r api2go.Request) (api2go.Responder, error) {
 		r.QueryParams["ids"] = modelRoot.CityIds
 
 		result := c.UcbCityStorage.GetAll(r, -1, -1)
+
+		return &Response{Res: result}, nil
+	}
+
+	if cok {
+		modelRootID := citySalesReportsID[0]
+
+		modelRoot, err := c.UcbCitySalesReportStorage.GetOne(modelRootID)
+
+		if err != nil {
+			return  &Response{}, nil
+		}
+
+		result, _ := c.UcbCityStorage.GetOne(modelRoot.CityId)
 
 		return &Response{Res: result}, nil
 	}
