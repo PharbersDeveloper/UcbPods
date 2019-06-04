@@ -20,6 +20,7 @@ type UcbSalesReportResource struct {
 	UcbSalesConfigStorage				*UcbDataStorage.UcbSalesConfigStorage
 	UcbScenarioStorage					*UcbDataStorage.UcbScenarioStorage
 	UcbProposalStorage					*UcbDataStorage.UcbProposalStorage
+	UcbCitySalesReportStorage			*UcbDataStorage.UcbCitySalesReportStorage
 }
 
 func (c UcbSalesReportResource) NewSalesReportResource(args []BmDataStorage.BmStorage) *UcbSalesReportResource {
@@ -31,6 +32,7 @@ func (c UcbSalesReportResource) NewSalesReportResource(args []BmDataStorage.BmSt
 	var sc	*UcbDataStorage.UcbSalesConfigStorage
 	var ss	*UcbDataStorage.UcbScenarioStorage
 	var pss *UcbDataStorage.UcbProposalStorage
+	var csrs *UcbDataStorage.UcbCitySalesReportStorage
 
 	for _, arg := range args {
 		tp := reflect.ValueOf(arg).Elem().Type()
@@ -50,6 +52,8 @@ func (c UcbSalesReportResource) NewSalesReportResource(args []BmDataStorage.BmSt
 			ss =arg.(*UcbDataStorage.UcbScenarioStorage)
 		} else if tp.Name() == "UcbProposalStorage" {
 			pss =arg.(*UcbDataStorage.UcbProposalStorage)
+		} else if tp.Name() == "UcbCitySalesReportStorage" {
+			csrs =arg.(*UcbDataStorage.UcbCitySalesReportStorage)
 		}
 	}
 	return &UcbSalesReportResource{
@@ -61,6 +65,7 @@ func (c UcbSalesReportResource) NewSalesReportResource(args []BmDataStorage.BmSt
 		UcbSalesConfigStorage: sc,
 		UcbScenarioStorage: ss,
 		UcbProposalStorage: pss,
+		UcbCitySalesReportStorage: csrs,
 	}
 }
 
@@ -131,6 +136,12 @@ func (c UcbSalesReportResource) FindOne(ID string, r api2go.Request) (api2go.Res
 	r.QueryParams["ids"] = modelRoot.ProductSalesReportIDs
 	for _, productSalesReport := range c.UcbProductSalesReportStorage.GetAll(r, -1,-1) {
 		modelRoot.ProductSalesReport = append(modelRoot.ProductSalesReport, productSalesReport)
+	}
+
+	modelRoot.CitySalesReport = []*UcbModel.CitySalesReport{}
+	r.QueryParams["ids"] = modelRoot.CitySalesReportIDs
+	for _, citySalesReport := range c.UcbCitySalesReportStorage.GetAll(r, -1,-1) {
+		modelRoot.CitySalesReport = append(modelRoot.CitySalesReport, citySalesReport)
 	}
 
 	if modelRoot.ScenarioID != "" {

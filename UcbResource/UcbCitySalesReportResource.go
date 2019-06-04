@@ -45,7 +45,7 @@ func (c UcbCitySalesReportResource) FindAll(r api2go.Request) (api2go.Responder,
 		if err != nil {
 			return &Response{}, nil
 		}
-		r.QueryParams["ids"] = modelRoot.HospitalSalesReportIDs
+		r.QueryParams["ids"] = modelRoot.CitySalesReportIDs
 
 		model := c.UcbCitySalesReportStorage.GetAll(r, -1,-1)
 

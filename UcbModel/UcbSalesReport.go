@@ -14,10 +14,12 @@ type SalesReport struct {
 	HospitalSalesReportIDs			[]string	`json:"-" bson:"hospital-sales-report-ids"`
 	RepresentativeSalesReportIDs	[]string  	`json:"-" bson:"representative-sales-report-ids"`
 	ProductSalesReportIDs			[]string	`json:"-" bson:"product-sales-report-ids"`
+	CitySalesReportIDs				[]string	`json:"-" bson:"city-sales-report-ids"`
 
 	HospitalSalesReport 		[]*HospitalSalesReport			`json:"-"`
 	RepresentativeSalesReport	[]*RepresentativeSalesReport	`json:"-"`
 	ProductSalesReport			[]*ProductSalesReport			`json:"-"`
+	CitySalesReport				[]*CitySalesReport				`json:"-"`
 	Scenario					*Scenario `json:"-"`
 
 	Time 						float64 `json:"time" bson:"time"`
@@ -49,6 +51,10 @@ func (u SalesReport) GetReferences() []jsonapi.Reference {
 		{
 			Type: "productSalesReports",
 			Name: "productSalesReports",
+		},
+		{
+			Type: "citySalesReports",
+			Name: "citySalesReports",
 		},
 		{
 			Type: "scenarios",
@@ -86,6 +92,14 @@ func (u SalesReport) GetReferencedIDs() []jsonapi.ReferenceID {
 		})
 	}
 
+	for _, kID := range u.CitySalesReportIDs {
+		result = append(result, jsonapi.ReferenceID{
+			ID:   kID,
+			Type: "citySalesReports",
+			Name: "citySalesReports",
+		})
+	}
+
 	if u.ScenarioID != "" {
 		result = append(result, jsonapi.ReferenceID{
 			ID: u.ScenarioID,
@@ -114,6 +128,10 @@ func (u SalesReport) GetReferencedStructs() []jsonapi.MarshalIdentifier {
 		result = append(result, u.ProductSalesReport[key])
 	}
 
+	for key := range u.CitySalesReport {
+		result = append(result, u.CitySalesReport[key])
+	}
+
 	if u.ScenarioID != "" && u.Scenario != nil {
 		result = append(result, u.Scenario)
 	}
@@ -140,6 +158,9 @@ func (u *SalesReport) SetToManyReferenceIDs(name string, IDs []string) error {
 	} else if name == "productSalesReports" {
 		u.ProductSalesReportIDs = IDs
 		return nil
+	} else if name == "citySalesReports" {
+		u.CitySalesReportIDs = IDs
+		return nil
 	}
 
 	return errors.New("There is no to-many relationship with the name " + name)
@@ -154,6 +175,9 @@ func (u *SalesReport) AddToManyIDs(name string, IDs []string) error {
 		return nil
 	} else if name == "productSalesReports" {
 		u.ProductSalesReportIDs = append(u.ProductSalesReportIDs, IDs...)
+		return nil
+	} else if name == "citySalesReports" {
+		u.CitySalesReportIDs = append(u.CitySalesReportIDs, IDs...)
 		return nil
 	}
 
