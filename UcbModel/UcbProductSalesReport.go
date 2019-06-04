@@ -60,7 +60,7 @@ func (u ProductSalesReport) GetReferencedIDs() []jsonapi.ReferenceID {
 	if u.GoodsConfigID != "" {
 		result = append(result, jsonapi.ReferenceID{
 			ID:   u.GoodsConfigID,
-			Type: "goodsConfig",
+			Type: "goodsConfigs",
 			Name: "goodsConfig",
 		})
 	}
