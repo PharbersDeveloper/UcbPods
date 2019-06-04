@@ -47,7 +47,7 @@ func (c *ProductSalesReport) SetID(id string) error {
 func (u ProductSalesReport) GetReferences() []jsonapi.Reference {
 	return []jsonapi.Reference{
 		{
-			Type: "goodsConfig",
+			Type: "goodsConfigs",
 			Name: "goodsConfig",
 		},
 	}
