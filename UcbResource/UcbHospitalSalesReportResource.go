@@ -63,10 +63,6 @@ func (c UcbHospitalSalesReportResource) FindAll(r api2go.Request) (api2go.Respon
 
 		model := c.UcbHospitalSalesReportStorage.GetAll(r, -1,-1)
 
-
-		if err != nil {
-			return &Response{}, nil
-		}
 		return &Response{Res: model}, nil
 	}
 

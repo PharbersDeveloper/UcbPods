@@ -60,6 +60,7 @@ var NTM_MODEL_FACTORY = map[string]interface{}{
 	"UcbGoodsinput":				UcbModel.Goodsinput{},
 	"UcbCity":						UcbModel.City{},
 	"UcbManagerGoodsConfig":		UcbModel.ManagerGoodsConfig{},
+	"UcbCitySalesReport":			UcbModel.CitySalesReport{},
 }
 
 var NTM_STORAGE_FACTORY = map[string]interface{}{
@@ -111,6 +112,7 @@ var NTM_STORAGE_FACTORY = map[string]interface{}{
 	"UcbGoodsinputStorage":					UcbDataStorage.UcbGoodsinputStorage{},
 	"UcbCityStorage":						UcbDataStorage.UcbCityStorage{},
 	"UcbManagerGoodsConfigStorage":			UcbDataStorage.UcbManagerGoodsConfigStorage{},
+	"UcbCitySalesReportStorage":			UcbDataStorage.UcbCitySalesReportStorage{},
 }
 
 var NTM_RESOURCE_FACTORY = map[string]interface{}{
@@ -164,6 +166,7 @@ var NTM_RESOURCE_FACTORY = map[string]interface{}{
 	"UcbGoodsinputResource":				UcbResource.UcbGoodsinputResource{},
 	"UcbCityResource":						UcbResource.UcbCityResource{},
 	"UcbManagerGoodsConfigResource":		UcbResource.UcbManagerGoodsConfigResource{},
+	"UcbCitySalesReportResource":			UcbResource.UcbCitySalesReportResource{},
 }
 
 var NTM_FUNCTION_FACTORY = map[string]interface{}{

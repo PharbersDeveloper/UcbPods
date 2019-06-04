@@ -16,8 +16,8 @@ type RepresentativeSalesReport struct {
 	ResourceConfig		*ResourceConfig	`json:"-"`
 	GoodsConfig 		*GoodsConfig `json:"-"`
 
-	RepresentativeName string `json:"representative-name" bson:"representative-name"`
-	ProductName		string `json:"product-name" bson:"product-name"`
+	//RepresentativeName string `json:"representative-name" bson:"representative-name"`
+	//ProductName		string `json:"product-name" bson:"product-name"`
 
 	Potential		float64	`json:"potential" bson:"potential"`
 	Sales			float64 `json:"sales" bson:"sales"`

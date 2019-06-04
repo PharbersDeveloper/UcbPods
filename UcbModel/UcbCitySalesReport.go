@@ -6,16 +6,9 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
-// ProductSalesReport Info
-type ProductSalesReport struct {
-	ID         		string        `json:"-"`
-	Id_        		bson.ObjectId `json:"-" bson:"_id"`
-	GoodsConfigID	string  `json:"-" bson:"goods-config-id"`
-
-	GoodsConfig 	*GoodsConfig `json:"-"`
-
-	//ProductName		string `json:"product-name" bson:"product-name"`
-
+type CitySalesReport struct {
+	ID       string        `json:"-"`
+	Id_      bson.ObjectId `json:"-" bson:"_id"`
 	Sales			float64 `json:"sales" bson:"sales"`
 	SalesQuota 		float64	`json:"sales-quota" bson:"sales-quota"`
 	Share 			float64 `json:"share" bson:"share"`
@@ -29,72 +22,68 @@ type ProductSalesReport struct {
 	SalesYearOnYear	float64	`json:"sales-year-on-year" bson:"sales-year-on-year"`
 	SalesMonthOnMonth float64	`json:"sales-month-on-month" bson:"sales-month-on-month"`
 	DrugEntranceInfo  string	`json:"drug-entrance-info" bson:"drug-entrance-info"`
+
+	CityId		string `json:"-" bson:"city-id"`
+	City 		*City  `json:"-"`
 }
 
-// GetID to satisfy jsonapi.MarshalIdentifier interfac
-func (c ProductSalesReport) GetID() string {
+func (c CitySalesReport) GetID() string {
 	return c.ID
 }
 
-// SetID to satisfy jsonapi.UnmarshalIdentifier interface
-func (c *ProductSalesReport) SetID(id string) error {
+func (c CitySalesReport) SetID(id string) error {
 	c.ID = id
 	return nil
 }
 
-
-// GetReferences to satisfy the jsonapi.MarshalReferences interface
-func (u ProductSalesReport) GetReferences() []jsonapi.Reference {
+func (c CitySalesReport) GetReferences() []jsonapi.Reference {
 	return []jsonapi.Reference{
 		{
-			Type: "goodsConfigs",
-			Name: "goodsConfig",
+			Type: "cities",
+			Name: "city",
 		},
 	}
 }
 
-// GetReferencedIDs to satisfy the jsonapi.MarshalLinkedRelations interface
-func (u ProductSalesReport) GetReferencedIDs() []jsonapi.ReferenceID {
+func (c CitySalesReport) GetReferencedIDs() []jsonapi.ReferenceID {
 	result := []jsonapi.ReferenceID{}
 
-	if u.GoodsConfigID != "" {
+	if c.CityId != "" {
 		result = append(result, jsonapi.ReferenceID{
-			ID:   u.GoodsConfigID,
-			Type: "goodsConfigs",
-			Name: "goodsConfig",
+			ID:   c.CityId,
+			Type: "cities",
+			Name: "city",
 		})
 	}
 
 	return result
 }
 
-// GetReferencedStructs to satisfy the jsonapi.MarhsalIncludedRelations interface
-func (u ProductSalesReport) GetReferencedStructs() []jsonapi.MarshalIdentifier {
+func (c CitySalesReport) GetReferencedStructs() []jsonapi.MarshalIdentifier {
 	result := []jsonapi.MarshalIdentifier{}
 
-	if u.GoodsConfigID != "" && u.GoodsConfig != nil {
-		result = append(result, u.GoodsConfig)
+	if c.CityId != "" && c.City != nil {
+		result = append(result, c.City)
 	}
-
 	return result
 }
 
-func (u *ProductSalesReport) SetToOneReferenceID(name, ID string) error {
-	if name == "goodsConfig" {
-		u.GoodsConfigID = ID
+func (c *CitySalesReport) SetToOneReferenceID(name, ID string) error {
+	if name == "DestConfig" {
+		c.CityId = ID
 		return nil
 	}
 
 	return errors.New("There is no to-one relationship with the name " + name)
 }
 
-func (u *ProductSalesReport) GetConditionsBsonM(parameters map[string][]string) bson.M {
+func (c *CitySalesReport) GetConditionsBsonM(parameters map[string][]string) bson.M {
 	rst := make(map[string]interface{})
+	r := make(map[string]interface{})
+	var ids []bson.ObjectId
 	for k, v := range parameters {
 		switch k {
 		case "ids":
-			r := make(map[string]interface{})
-			var ids []bson.ObjectId
 			for i := 0; i < len(v); i++ {
 				ids = append(ids, bson.ObjectIdHex(v[i]))
 			}
@@ -102,6 +91,5 @@ func (u *ProductSalesReport) GetConditionsBsonM(parameters map[string][]string) 
 			rst["_id"] = r
 		}
 	}
-
 	return rst
 }
