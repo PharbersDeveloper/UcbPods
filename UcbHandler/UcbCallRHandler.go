@@ -1,17 +1,17 @@
 package UcbHandler
 
 import (
+	"Ucb/UcbModel"
 	"encoding/json"
 	"fmt"
 	"github.com/alfredyang1986/BmServiceDef/BmDaemons"
 	"github.com/alfredyang1986/BmServiceDef/BmDaemons/BmMongodb"
 	"github.com/alfredyang1986/BmServiceDef/BmDaemons/BmRedis"
 	"github.com/julienschmidt/httprouter"
+	"github.com/manyminds/api2go"
 	"io/ioutil"
 	"net/http"
 	"reflect"
-	"strings"
-	"time"
 )
 
 type UcbCallRHandler struct {
@@ -57,18 +57,23 @@ func (h UcbCallRHandler) NewCallRHandler(args ...interface{}) UcbCallRHandler {
 	return UcbCallRHandler{Method: md, HttpMethod: hm, Args: ag, db: m, rd: r }
 }
 
+//rr api2go.Request
 func (h UcbCallRHandler) CallRCalculate(w http.ResponseWriter, r *http.Request, _ httprouter.Params) int {
 	w.Header().Add("Content-Type", "application/json")
+	req := getApi2goRequest(r, w.Header())
 	params := map[string]string{}
 	res, _ := ioutil.ReadAll(r.Body)
 	result := map[string]interface{}{}
 	enc := json.NewEncoder(w)
 	json.Unmarshal(res, &params)
 
-	tc := time.After(time.Second * 2)
-
 	proposalId, pok := params["proposal-id"]
 	accountId, aok := params["account-id"]
+	scenarioId, sok := params["scenario-id"]
+
+	fmt.Println(proposalId)
+	fmt.Println(accountId)
+	fmt.Println(scenarioId)
 
 	if !pok {
 		result["status"] = "error"
@@ -84,54 +89,23 @@ func (h UcbCallRHandler) CallRCalculate(w http.ResponseWriter, r *http.Request, 
 		return 1
 	}
 
-
-	// 拼接转发的URL
-	scheme := "http://"
-	if r.TLS != nil {
-		scheme = "https://"
-	}
-	resource := fmt.Sprint(h.Args[0], "/", h.Args[1], "/",proposalId, "/", accountId)
-	mergeURL := strings.Join([]string{scheme, resource}, "")
-
-	fmt.Println(mergeURL)
-
-	// 转发
-	client := &http.Client{}
-	req, _ := http.NewRequest("GET", mergeURL, nil)
-	for k, v := range r.Header {
-		req.Header.Add(k, v[0])
-	}
-	response, err := client.Do(req)
-
-	if err != nil {
-		return 1
-	}
-
-	body, err := ioutil.ReadAll(response.Body)
-
-	if err != nil {
-		return 1
-	}
-
-	rCalcResultBody := map[string]string{}
-	json.Unmarshal(body, &rCalcResultBody)
-
-	resultBody, sok := rCalcResultBody["status"]
-
-
-
-	if sok && resultBody == "Success" {
-		result["status"] = "Success"
-		result["msg"] = "计算成功"
-		<-tc
+	if !sok {
+		result["status"] = "error"
+		result["msg"] = "计算失败，scenario-id参数缺失"
 		enc.Encode(result)
-	} else {
-		//result["status"] = "Error"
-		//result["msg"] = "计算失败"
-		//enc.Encode(result)
-		<-tc
-		panic("计算失败")
+		return 1
 	}
+
+	var paper []*UcbModel.Paper
+
+
+	req.QueryParams["account-id"] = []string{accountId}
+	req.QueryParams["proposal-id"] = []string{proposalId}
+
+	_ = h.db.FindMulti(req, &UcbModel.Paper{}, &paper, -1, -1)
+
+	fmt.Println(paper)
+
 	return 0
 }
 
@@ -141,4 +115,12 @@ func (h UcbCallRHandler) GetHttpMethod() string {
 
 func (h UcbCallRHandler) GetHandlerMethod() string {
 	return h.Method
+}
+
+func getApi2goRequest(r *http.Request, header http.Header) api2go.Request{
+	return api2go.Request{
+		PlainRequest: r,
+		Header: header,
+		QueryParams: map[string][]string{},
+	}
 }
