@@ -3,12 +3,11 @@ package UcbHandler
 import (
 	"Ucb/UcbDataStorage"
 	"Ucb/UcbModel"
-	"fmt"
 	"github.com/alfredyang1986/BmServiceDef/BmDaemons"
 	"github.com/alfredyang1986/BmServiceDef/BmDaemons/BmMongodb"
 	"github.com/alfredyang1986/BmServiceDef/BmDaemons/BmRedis"
 	"github.com/julienschmidt/httprouter"
-	"gopkg.in/mgo.v2/bson"
+	"github.com/manyminds/api2go"
 	"io/ioutil"
 	"net/http"
 	"reflect"
@@ -69,29 +68,39 @@ func (h UcbGeneratePaperHandler) GeneratePaper(w http.ResponseWriter, r *http.Re
 	//}
 
 	proposalId := r.FormValue("proposal-id")
-	accountID := r.FormValue("account-id")
+	accountId := r.FormValue("account-id")
 
-	if len(proposalId) == 0 || proposalId == "undefined" || len(accountID) == 0 || accountID == "undefined" {
+	if len(proposalId) == 0 || proposalId == "undefined" || len(accountId) == 0 || accountId == "undefined" {
 		panic("生成Paper的参数不完整")
 		return 1
 	}
-	proposalModel, err := UcbDataStorage.UcbProposalStorage{}.NewProposalStorage(mdb).GetOne(proposalId)
+	proposalModel, _ := UcbDataStorage.UcbProposalStorage{}.NewProposalStorage(mdb).GetOne(proposalId)
 
 	var (
-		out UcbModel.Paper
+		//out UcbModel.Paper
 		paperId string
 		)
-	cond := bson.M{"proposal-id": proposalId, "account-id": accountID}
+	//cond := bson.M{"proposal-id": proposalId, "account-id": accountId}
 
-	err = h.db.FindOneByCondition(&UcbModel.Paper{}, &out, cond)
+	//err = h.db.FindOneByCondition(&UcbModel.Paper{}, &out, cond)
 
-	if err != nil && err.Error() != "not found" {
-		panic(fmt.Sprintf(err.Error()))
-	} else if len(out.ID) > 0 {
-		paperId = out.ID
-	} else {
+	reqs := api2go.Request{
+		PlainRequest: r,
+		Header: w.Header(),
+		QueryParams: map[string][]string{},
+	}
+
+	reqs.QueryParams["account-id"] = []string{accountId}
+	reqs.QueryParams["proposal-id"] = []string{proposalId}
+	//reqs.QueryParams["orderby"] = []string{"time"}
+
+	papers := UcbDataStorage.UcbPaperStorage{}.NewPaperStorage(mdb).GetAll(reqs, -1, -1)
+
+	paper := papers[len(papers)-1]
+
+	if paper.InputState == 3 {
 		paperModel := UcbModel.Paper{
-			AccountID: accountID, //token.UserID,
+			AccountID: accountId, //token.UserID,
 			ProposalID: proposalModel.ID,
 			Name: proposalModel.Name,
 			Describe: proposalModel.Describe,
@@ -102,10 +111,33 @@ func (h UcbGeneratePaperHandler) GeneratePaper(w http.ResponseWriter, r *http.Re
 			InputIDs: proposalModel.InputIDs,
 			SalesReportIDs: proposalModel.SalesReportIDs,
 			PersonnelAssessmentIDs: proposalModel.PersonnelAssessmentIDs,
+			Time: time.Now().UnixNano(),
 		}
 
 		paperId = UcbDataStorage.UcbPaperStorage{}.NewPaperStorage(mdb).Insert(paperModel)
 	}
+
+	//if err != nil && err.Error() != "not found" {
+	//	panic(fmt.Sprintf(err.Error()))
+	//} else if len(out.ID) > 0 {
+	//	paperId = out.ID
+	//} else {
+	//	paperModel := UcbModel.Paper{
+	//		AccountID: accountId, //token.UserID,
+	//		ProposalID: proposalModel.ID,
+	//		Name: proposalModel.Name,
+	//		Describe: proposalModel.Describe,
+	//		TotalPhase: proposalModel.TotalPhase,
+	//		StartTime: time.Now().UnixNano(),
+	//		EndTime: 0,
+	//		InputState: 0,
+	//		InputIDs: proposalModel.InputIDs,
+	//		SalesReportIDs: proposalModel.SalesReportIDs,
+	//		PersonnelAssessmentIDs: proposalModel.PersonnelAssessmentIDs,
+	//	}
+	//
+	//	paperId = UcbDataStorage.UcbPaperStorage{}.NewPaperStorage(mdb).Insert(paperModel)
+	//}
 
 	//拼接转发的URL
 	scheme := "http://"
@@ -123,7 +155,7 @@ func (h UcbGeneratePaperHandler) GeneratePaper(w http.ResponseWriter, r *http.Re
 	}
 	response, _ := client.Do(req)
 
-	responseBody, err := ioutil.ReadAll(response.Body)
+	responseBody, _ := ioutil.ReadAll(response.Body)
 
 	w.Header().Add("Content-Type", "application/json")
 	w.Write(responseBody)

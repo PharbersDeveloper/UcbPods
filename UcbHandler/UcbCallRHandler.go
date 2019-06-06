@@ -96,13 +96,54 @@ func (h UcbCallRHandler) CallRCalculate(w http.ResponseWriter, r *http.Request, 
 		return 1
 	}
 
-	var paper []*UcbModel.Paper
+	var paper []UcbModel.Paper
+	var paperInput UcbModel.Paperinput
+	var scenario UcbModel.Scenario
+	var businessInputs []UcbModel.Businessinput
+	//var destConfig []UcbModel.DestConfig
+	//var resourceConfig []UcbModel.ResourceConfig
+	//var goodsInputs []UcbModel.Goodsinput
 
 
 	req.QueryParams["account-id"] = []string{accountId}
 	req.QueryParams["proposal-id"] = []string{proposalId}
 
+	// 查询当前Paper
 	_ = h.db.FindMulti(req, &UcbModel.Paper{}, &paper, -1, -1)
+	currentPaperInputID := paper[0].InputIDs[len(paper[0].InputIDs)-1]
+
+	// 查询当前PaperInput
+	_ = h.db.FindOne(&UcbModel.Paperinput{ID: currentPaperInputID}, &paperInput)
+
+	// 查询当前Scenario
+	_ = h.db.FindOne(&UcbModel.Scenario{ID: paperInput.ScenarioID}, &scenario)
+
+	// 查询当前BusinessInput
+	req.QueryParams["ids"] = paperInput.BusinessinputIDs
+	_ = h.db.FindMulti(req, &UcbModel.Businessinput{}, &businessInputs, -1, -1)
+
+
+
+	// 查询当前Dest、Resource
+	//var (
+	//	destIds []string
+	//	resources []string
+	//)
+	//for _, business := range businessInputs {
+	//	destIds = append(destIds, business.DestConfigId)
+	//	resources = append(resources, business.ResourceConfigId)
+	//}
+	//req.QueryParams["ids"] = destIds
+	//_ = h.db.FindMulti(req, &UcbModel.DestConfig{}, &destConfig, -1, -1)
+	//req.QueryParams["ids"] = resources
+	//_ = h.db.FindMulti(req, &UcbModel.ResourceConfig{}, &resourceConfig, -1, -1)
+
+
+
+
+
+
+
 
 	fmt.Println(paper)
 

@@ -16,6 +16,7 @@ type Paper struct {
 	StartTime  int64         `json:"start-time" bson:"start-time"`
 	EndTime    int64         `json:"end-time" bson:"end-time"`
 	TotalPhase	int 		 `json:"total-phase" bson:"total-phase"`
+	Time		int64			`json:"time" bson:"time"`
 
 	// 0 关卡未开始 1 关卡内正在做周期，未执最后行计算 2 关卡部分周期做完，新的周期未开始 3 关卡内的所有周期结束
 	InputState int       `json:"state" bson:"input-state"`
