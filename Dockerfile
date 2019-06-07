@@ -5,7 +5,7 @@ FROM golang:1.12.4-alpine
 MAINTAINER Pharbers "pqian@pharbers.com"
 
 #LABEL
-LABEL UcbPods.version="0.0.1" maintainer="Alex"
+LABEL UcbPods.version="0.0.2" maintainer="Alex"
 
 # 安装git
 RUN apk add --no-cache git gcc musl-dev
