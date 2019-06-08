@@ -133,6 +133,10 @@ func (u *SalesConfig) GetConditionsBsonM(parameters map[string][]string) bson.M 
 			rst["_id"] = r
 		case "scenario-id":
 			rst[k] = v[0]
+		case "dest-config-id":
+			rst[k] = v[0]
+		case "goods-config-id":
+			rst[k] = v[0]
 		}
 	}
 

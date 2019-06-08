@@ -92,7 +92,7 @@ func (h UcbGeneratePaperHandler) GeneratePaper(w http.ResponseWriter, r *http.Re
 
 	reqs.QueryParams["account-id"] = []string{accountId}
 	reqs.QueryParams["proposal-id"] = []string{proposalId}
-	//reqs.QueryParams["orderby"] = []string{"time"}
+	reqs.QueryParams["orderby"] = []string{"time"}
 
 	papers := UcbDataStorage.UcbPaperStorage{}.NewPaperStorage(mdb).GetAll(reqs, -1, -1)
 

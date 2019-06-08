@@ -1,7 +1,7 @@
 package UcbHandler
 
 import (
-	"Ucb/UcbModel"
+	"Ucb/UcbDataStorage"
 	"encoding/json"
 	"fmt"
 	"github.com/alfredyang1986/BmServiceDef/BmDaemons"
@@ -20,6 +20,15 @@ type UcbCallRHandler struct {
 	Args       []string
 	db         *BmMongodb.BmMongodb
 	rd         *BmRedis.BmRedis
+}
+
+type calcStruct struct {
+	Header     map[string]string      `json:"header"`
+	Account    string                 `json:"account"`
+	Proposal   string                 `json:"proposal"`
+	PaperInput string                 `json:"paperInput"`
+	Scenario   map[string]interface{} `json:"scenario"`
+	Body       map[string]interface{} `json:"body"`
 }
 
 func (h UcbCallRHandler) NewCallRHandler(args ...interface{}) UcbCallRHandler {
@@ -59,6 +68,7 @@ func (h UcbCallRHandler) NewCallRHandler(args ...interface{}) UcbCallRHandler {
 
 //rr api2go.Request
 func (h UcbCallRHandler) CallRCalculate(w http.ResponseWriter, r *http.Request, _ httprouter.Params) int {
+	mdb := []BmDaemons.BmDaemon{h.db}
 	w.Header().Add("Content-Type", "application/json")
 	req := getApi2goRequest(r, w.Header())
 	params := map[string]string{}
@@ -96,56 +106,164 @@ func (h UcbCallRHandler) CallRCalculate(w http.ResponseWriter, r *http.Request, 
 		return 1
 	}
 
-	var paper []UcbModel.Paper
-	var paperInput UcbModel.Paperinput
-	var scenario UcbModel.Scenario
-	var businessInputs []UcbModel.Businessinput
-	//var destConfig []UcbModel.DestConfig
-	//var resourceConfig []UcbModel.ResourceConfig
-	//var goodsInputs []UcbModel.Goodsinput
-
-
 	req.QueryParams["account-id"] = []string{accountId}
 	req.QueryParams["proposal-id"] = []string{proposalId}
+	req.QueryParams["orderby"] = []string{"time"}
 
-	// 查询当前Paper
-	_ = h.db.FindMulti(req, &UcbModel.Paper{}, &paper, -1, -1)
-	currentPaperInputID := paper[0].InputIDs[len(paper[0].InputIDs)-1]
+	var (
+		inputs []map[string]interface{}
+		histories []map[string]interface{}
+	)
 
-	// 查询当前PaperInput
-	_ = h.db.FindOne(&UcbModel.Paperinput{ID: currentPaperInputID}, &paperInput)
+	scenarioStorage := UcbDataStorage.UcbScenarioStorage{}.NewScenarioStorage(mdb)
+	paperStorage := UcbDataStorage.UcbPaperStorage{}.NewPaperStorage(mdb)
+	paperInputStorage := UcbDataStorage.UcbPaperinputStorage{}.NewPaperinputStorage(mdb)
+	businessInputStorage := UcbDataStorage.UcbBusinessinputStorage{}.NewBusinessinputStorage(mdb)
+	destConfigStorage := UcbDataStorage.UcbDestConfigStorage{}.NewDestConfigStorage(mdb)
+	hospitalConfigStorage := UcbDataStorage.UcbHospitalConfigStorage{}.NewHospitalConfigStorage(mdb)
+	cityStorage := UcbDataStorage.UcbCityStorage{}.NewCityStorage(mdb)
+	hospitalStorage := UcbDataStorage.UcbHospitalStorage{}.NewHospitalStorage(mdb)
+	resourceConfigStorage := UcbDataStorage.UcbResourceConfigStorage{}.NewResourceConfigStorage(mdb)
+	representativeConfigStorage := UcbDataStorage.UcbRepresentativeConfigStorage{}.NewRepresentativeConfigStorage(mdb)
+	representativeStorage := UcbDataStorage.UcbRepresentativeStorage{}.NewRepresentativeStorage(mdb)
+	goodsInputStorage := UcbDataStorage.UcbGoodsinputStorage{}.NewGoodsinputStorage(mdb)
+	goodsConfigStorage := UcbDataStorage.UcbGoodsConfigStorage{}.NewGoodsConfigStorage(mdb)
+	productConfigStorage := UcbDataStorage.UcbProductConfigStorage{}.NewProductConfigStorage(mdb)
+	productStorage := UcbDataStorage.UcbProductStorage{}.NewProductStorage(mdb)
+	salesConfigStorage := UcbDataStorage.UcbSalesConfigStorage{}.NewSalesConfigStorage(mdb)
 
-	// 查询当前Scenario
-	_ = h.db.FindOne(&UcbModel.Scenario{ID: paperInput.ScenarioID}, &scenario)
+	salesReportStorage := UcbDataStorage.UcbSalesReportStorage{}.NewSalesReportStorage(mdb)
+	hospitalSalesReport := UcbDataStorage.UcbHospitalSalesReportStorage{}.NewHospitalSalesReportStorage(mdb)
 
-	// 查询当前BusinessInput
+	// 最新的paper
+	paper := paperStorage.GetAll(req, -1, -1)[0]
+
+	// 最新的输入
+	paperInput, _ := paperInputStorage.GetOne(paper.InputIDs[len(paper.InputIDs) - 1])
+
+	cleanQueryParams(&req)
+
+	// 最新的BusinessInputs Inputs
 	req.QueryParams["ids"] = paperInput.BusinessinputIDs
-	_ = h.db.FindMulti(req, &UcbModel.Businessinput{}, &businessInputs, -1, -1)
+	businessInputs := businessInputStorage.GetAll(req, -1,-1)
+	for _, businessInput := range businessInputs {
+		var products []interface{}
+		product := map[string]interface{}{}
+		hospitalMap := map[string]interface{}{}
+		representativeMap := map[string]interface{}{}
+
+		destConfig, _ := destConfigStorage.GetOne(businessInput.DestConfigId)
+		hospitalConfig, _ := hospitalConfigStorage.GetOne(destConfig.DestID)
+		city, _ := cityStorage.GetOne(hospitalConfig.CityID)
+		hospital, _ := hospitalStorage.GetOne(hospitalConfig.HospitalID)
+		resourceConfig, _ := resourceConfigStorage.GetOne(businessInput.ResourceConfigId)
+		representativeConfig, _ := representativeConfigStorage.GetOne(resourceConfig.ResourceID)
+		representative, _ := representativeStorage.GetOne(representativeConfig.RepresentativeID)
+
+		cleanQueryParams(&req)
+		req.QueryParams["ids"] = businessInput.GoodsInputIds
+		goodsInputs := goodsInputStorage.GetAll(req, -1, -1)
+		for _, goodsInput := range goodsInputs {
+			goodsConfig, _ := goodsConfigStorage.GetOne(goodsInput.GoodsConfigId)
+			productConfig, _ := productConfigStorage.GetOne(goodsConfig.GoodsID)
+			productModel, _ := productStorage.GetOne(productConfig.ProductID)
+			cleanQueryParams(&req)
+			req.QueryParams["scenario-id"] = []string{paperInput.ScenarioID}
+			req.QueryParams["dest-config-id"] = []string{destConfig.ID}
+			req.QueryParams["goods-config-id"] = []string{goodsConfig.ID}
+
+			salesConfig := salesConfigStorage.GetAll(req, -1, -1)[0]
+
+			product["product-id"] = goodsInput.GoodsConfigId
+			product["product-name"] = productModel.Name
+			product["sales-target"] = goodsInput.SalesTarget
+			product["budget"] = goodsInput.Budget
+			product["potential"] = salesConfig.Potential
+			product["patient-count"] = salesConfig.PatientCount
+			products = append(products, product)
+		}
+
+		representativeMap["representative-id"] = resourceConfig.ID
+		representativeMap["representative-name"] = representative.Name
+
+		hospitalMap["city-id"] = city.ID
+		hospitalMap["city-name"] = city.Name
+		hospitalMap["hospital-id"] = destConfig.ID
+		hospitalMap["hospital-name"] = hospital.Name
+		hospitalMap["hospital-level"] = hospital.HospitalLevel
+		hospitalMap["representative"] = representativeMap
+		hospitalMap["products"] = products
+		hospitalMap["meeting-places"] = businessInput.MeetingPlaces
+		hospitalMap["visit-time"] = businessInput.VisitTime
+
+		inputs = append(inputs, hospitalMap)
+	}
+
+	// 上4周期的医院销售报告
+	cleanQueryParams(&req)
+	req.QueryParams["ids"] = paper.SalesReportIDs[len(paper.SalesReportIDs) - 4:]
+	for _, salesReport := range salesReportStorage.GetAll(req, -1, -1) {
+		hospitalMap := map[string]interface{}{}
+		scenarioMap := map[string]interface{}{}
+
+		scenario, _ := scenarioStorage.GetOne(salesReport.ScenarioID)
+		scenarioMap["name"] = scenario.Name
+		scenarioMap["phase"] = scenario.Phase
+
+		req.QueryParams["ids"] = salesReport.HospitalSalesReportIDs
+		for _, hospitalSalesReport := range hospitalSalesReport.GetAll(req, -1, -1) {
+			destConfig, _ := destConfigStorage.GetOne(hospitalSalesReport.DestConfigID)
+			hospitalConfig, _ := hospitalConfigStorage.GetOne(destConfig.DestID)
+			hospital, _ := hospitalStorage.GetOne(hospitalConfig.HospitalID)
+
+			resourceConfig, _ := resourceConfigStorage.GetOne(hospitalSalesReport.ResourceConfigID)
+			representativeConfig, _ := representativeConfigStorage.GetOne(resourceConfig.ResourceID)
+			representative, _ := representativeStorage.GetOne(representativeConfig.RepresentativeID)
+
+			goodsConfig, _  := goodsConfigStorage.GetOne(hospitalSalesReport.GoodsConfigID)
+			productConfig, _ := productConfigStorage.GetOne(goodsConfig.GoodsID)
+			product, _ := productStorage.GetOne(productConfig.ProductID)
+
+			hospitalMap["scenario"] = scenarioMap
+			hospitalMap["hospital-name"] = hospital.Name
+			hospitalMap["representative-name"] = representative.Name
+			hospitalMap["product-name"] = product.Name
+
+			hospitalMap["sales"] = hospitalSalesReport.Sales
+			hospitalMap["sales-quota"] = hospitalSalesReport.SalesQuota
+			hospitalMap["ytd-sales"] = hospitalSalesReport.YTDSales
+			hospitalMap["drug-entrance-info"] = hospitalSalesReport.DrugEntranceInfo
+			histories = append(histories, hospitalMap)
+		}
+	}
 
 
+	header := map[string]string{}
+	scenario := map[string]interface{}{}
+	body := map[string]interface{}{}
 
-	// 查询当前Dest、Resource
-	//var (
-	//	destIds []string
-	//	resources []string
-	//)
-	//for _, business := range businessInputs {
-	//	destIds = append(destIds, business.DestConfigId)
-	//	resources = append(resources, business.ResourceConfigId)
-	//}
-	//req.QueryParams["ids"] = destIds
-	//_ = h.db.FindMulti(req, &UcbModel.DestConfig{}, &destConfig, -1, -1)
-	//req.QueryParams["ids"] = resources
-	//_ = h.db.FindMulti(req, &UcbModel.ResourceConfig{}, &resourceConfig, -1, -1)
+	header["application"] = "ucb"
+	header["contentType"] = "json"
 
+	sm, _ := scenarioStorage.GetOne(scenarioId)
+	scenario["id"] = sm.ID
+	scenario["name"] = sm.Name
+	scenario["phase"] = sm.Phase
 
+	body["inputs"] = inputs
+	body["histories"] = histories
 
+	cs := &calcStruct {
+		Header:     header,
+		Account:    accountId,
+		Proposal:   proposalId,
+		PaperInput: paperInput.ID,
+		Scenario:   scenario,
+		Body:       body,
+	}
 
-
-
-
-
-	fmt.Println(paper)
+	c, _ := json.MarshalIndent(cs, "", " ")
+	fmt.Println(string(c))
 
 	return 0
 }
@@ -156,6 +274,10 @@ func (h UcbCallRHandler) GetHttpMethod() string {
 
 func (h UcbCallRHandler) GetHandlerMethod() string {
 	return h.Method
+}
+
+func cleanQueryParams(r *api2go.Request) {
+	r.QueryParams = map[string][]string{}
 }
 
 func getApi2goRequest(r *http.Request, header http.Header) api2go.Request{

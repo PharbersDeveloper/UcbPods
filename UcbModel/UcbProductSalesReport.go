@@ -28,6 +28,7 @@ type ProductSalesReport struct {
 	SalesContribute	float64	`json:"sales-contribute" bson:"sales-contribute"`
 	SalesYearOnYear	float64	`json:"sales-year-on-year" bson:"sales-year-on-year"`
 	SalesMonthOnMonth float64	`json:"sales-month-on-month" bson:"sales-month-on-month"`
+	Contribution	float64		`json:"contribution" bson:"contribution"`
 }
 
 // GetID to satisfy jsonapi.MarshalIdentifier interfac
@@ -99,6 +100,14 @@ func (u *ProductSalesReport) GetConditionsBsonM(parameters map[string][]string) 
 			}
 			r["$in"] = ids
 			rst["_id"] = r
+		case "goodsConfigIds":
+			r := make(map[string]interface{})
+			var ids []string
+			for i := 0; i < len(v); i++ {
+				ids = append(ids, v[i])
+			}
+			r["$in"] = ids
+			rst["goods-config-id"] = r
 		}
 	}
 

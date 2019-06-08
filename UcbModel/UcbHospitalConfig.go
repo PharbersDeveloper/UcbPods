@@ -16,6 +16,7 @@ type HospitalConfig struct {
 	SpaceBelongs  string  `json:"space-belongs" bson:"space-belongs"`
 	Ability2Pay   string  `json:"ability-to-pay" bson:"ability-to-pay"`
 	SelfCostRatio float64 `json:"self-cost-ration" bson:"self-cost-ratio"`
+	CityID		string	`json:"city-id" bson:"city-id"`
 
 	Hospital   *Hospital `json:"-"`
 	HospitalID string    `json:"-" bson:"hospital-id"`

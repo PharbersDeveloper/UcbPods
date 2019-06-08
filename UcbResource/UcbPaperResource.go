@@ -1,9 +1,9 @@
 package UcbResource
 
 import (
-	"errors"
 	"Ucb/UcbDataStorage"
 	"Ucb/UcbModel"
+	"errors"
 	"github.com/alfredyang1986/BmServiceDef/BmDataStorage"
 	"github.com/manyminds/api2go"
 	"net/http"
@@ -16,6 +16,12 @@ type UcbPaperResource struct {
 	UcbPaperinputStorage	*UcbDataStorage.UcbPaperinputStorage
 	UcbSalesReportStorage	*UcbDataStorage.UcbSalesReportStorage
 	UcbPersonnelAssessmentStorage	*UcbDataStorage.UcbPersonnelAssessmentStorage
+
+	UcbScenarioStorage				*UcbDataStorage.UcbScenarioStorage
+	UcbProductSalesReportStorage	*UcbDataStorage.UcbProductSalesReportStorage
+	UcbGoodsConfigStorage 			*UcbDataStorage.UcbGoodsConfigStorage
+	UcbProductConfigStorage			*UcbDataStorage.UcbProductConfigStorage
+	UcbProductStorage				*UcbDataStorage.UcbProductStorage
 }
 
 func (s UcbPaperResource) NewPaperResource (args []BmDataStorage.BmStorage) *UcbPaperResource {
@@ -23,6 +29,12 @@ func (s UcbPaperResource) NewPaperResource (args []BmDataStorage.BmStorage) *Ucb
 	var pis *UcbDataStorage.UcbPaperinputStorage
 	var srs *UcbDataStorage.UcbSalesReportStorage
 	var pas *UcbDataStorage.UcbPersonnelAssessmentStorage
+
+	var ss *UcbDataStorage.UcbScenarioStorage
+	var psrs *UcbDataStorage.UcbProductSalesReportStorage
+	var gcs  *UcbDataStorage.UcbGoodsConfigStorage
+	var pcs  *UcbDataStorage.UcbProductConfigStorage
+	var prods   *UcbDataStorage.UcbProductStorage
 
 	for _, arg := range args {
 		tp := reflect.ValueOf(arg).Elem().Type()
@@ -34,6 +46,16 @@ func (s UcbPaperResource) NewPaperResource (args []BmDataStorage.BmStorage) *Ucb
 			srs = arg.(*UcbDataStorage.UcbSalesReportStorage)
 		} else if tp.Name() == "UcbPersonnelAssessmentStorage" {
 			pas = arg.(*UcbDataStorage.UcbPersonnelAssessmentStorage)
+		} else if tp.Name() == "UcbProductSalesReportStorage" {
+			psrs = arg.(*UcbDataStorage.UcbProductSalesReportStorage)
+		} else if tp.Name() == "UcbGoodsConfigStorage" {
+			gcs = arg.(*UcbDataStorage.UcbGoodsConfigStorage)
+		} else if tp.Name() == "UcbProductConfigStorage" {
+			pcs = arg.(*UcbDataStorage.UcbProductConfigStorage)
+		} else if tp.Name() == "UcbProductStorage" {
+			prods = arg.(*UcbDataStorage.UcbProductStorage)
+		} else if tp.Name() == "UcbScenarioStorage" {
+			ss = arg.(*UcbDataStorage.UcbScenarioStorage)
 		}
 	}
 	return &UcbPaperResource{
@@ -41,11 +63,24 @@ func (s UcbPaperResource) NewPaperResource (args []BmDataStorage.BmStorage) *Ucb
 		UcbPaperStorage: ps,
 		UcbSalesReportStorage: srs,
 		UcbPersonnelAssessmentStorage: pas,
+
+		UcbScenarioStorage: ss,
+		UcbProductSalesReportStorage: psrs,
+		UcbGoodsConfigStorage: gcs,
+		UcbProductConfigStorage: pcs,
+		UcbProductStorage: prods,
 	}
 }
 
 func (s UcbPaperResource) FindAll(r api2go.Request) (api2go.Responder, error) {
-	//var result []UcbModel.Paper
+	chartType, ctOk := r.QueryParams["chart-type"]
+
+	if ctOk && chartType[0] == "product-compete-line" { // 前端应该有以前写好的function，直接返回数据前端展示
+		return s.productCompeteLine(r)
+	} else if ctOk && chartType[0] == "product-sales-report-summary" { // 处理产品销售报告饼状图数据
+		return s.productSalesReportPie(r)
+	}
+
 	result := s.UcbPaperStorage.GetAll(r, -1, -1)
 	return &Response{Res: result}, nil
 }
@@ -166,4 +201,92 @@ func (s UcbPaperResource) Update(obj interface{}, r api2go.Request) (api2go.Resp
 
 	err := s.UcbPaperStorage.Update(model)
 	return &Response{Res: model, Code: http.StatusNoContent}, err
+}
+
+func (s UcbPaperResource) productCompeteLine(r api2go.Request) (api2go.Responder, error) {
+	r.QueryParams["orderby"] = []string{"time"}
+	result := s.UcbPaperStorage.GetAll(r, -1, -1)
+	curr := result[len(result)-1:]
+
+	for _, model := range curr {
+		salesReportIds := model.SalesReportIDs[len(model.SalesReportIDs)-4:] // 写死了
+		model.SalesReportIDs = salesReportIds
+		r.QueryParams["ids"] = salesReportIds
+		salesReportModels := s.UcbSalesReportStorage.GetAll(r, -1,-1)
+		model.SalesReports = salesReportModels
+	}
+
+	return &Response{Res: curr}, nil
+}
+
+func (s UcbPaperResource) productSalesReportPie(r api2go.Request) (api2go.Responder, error) {
+	r.QueryParams["orderby"] = []string{"time"}
+	result := s.UcbPaperStorage.GetAll(r, -1, -1)
+	curr := result[len(result)-1:]
+
+	r.QueryParams["ids"] = curr[0].SalesReportIDs
+	salesReportModels := s.UcbSalesReportStorage.GetAll(r, -1,-1)
+
+	srms := salesReportModels[len(salesReportModels)-2:]
+	var (
+		goodsConfigIds []string
+		goodsIds []string
+		goodsConfigMapProductConfig map[string]string
+		summary []map[string]interface{}
+	)
+
+	for _, salesReportModel := range srms {
+		r.QueryParams = map[string][]string{}
+		goodsConfigMapProductConfig = make(map[string]string)
+		summary = []map[string]interface{}{}
+
+		scenarioModel, _ := s.UcbScenarioStorage.GetOne(salesReportModel.ScenarioID)
+
+		r.QueryParams["scenario-id"] = []string{salesReportModel.ScenarioID}
+
+		goodsConfigModels := s.UcbGoodsConfigStorage.GetAll(r, -1, -1)
+		for _, goodsConfig := range goodsConfigModels {
+			goodsIds = append(goodsIds, goodsConfig.GoodsID)
+			goodsConfigMapProductConfig[goodsConfig.GoodsID] = goodsConfig.ID
+		}
+
+		r.QueryParams = map[string][]string{}
+
+		r.QueryParams["ids"] = goodsIds
+		r.QueryParams["product-type"] = []string{"0"}
+		for _, productConfigModel := range s.UcbProductConfigStorage.GetAll(r, -1, -1) {
+			productModel, _ := s.UcbProductStorage.GetOne(productConfigModel.ProductID)
+			if _, ok := goodsConfigMapProductConfig[productConfigModel.ID]; ok {
+				detail := map[string]interface{}{}
+				detail["goodsConfigId"] = goodsConfigMapProductConfig[productConfigModel.ID]
+				detail["goodsName"] = productModel.Name
+				detail["scenarioName"] = scenarioModel.Name
+				summary = append(summary, detail)
+			}
+		}
+
+		for _, v := range summary {
+			goodsConfigIds = append(goodsConfigIds, v["goodsConfigId"].(string))
+		}
+
+		r.QueryParams = map[string][]string{}
+
+		r.QueryParams["ids"] = salesReportModel.ProductSalesReportIDs
+		r.QueryParams["goodsConfigIds"] = goodsConfigIds
+		prodReps := s.UcbProductSalesReportStorage.GetAll(r, -1, -1)
+		for _, prodRep := range prodReps  {
+			for _, v := range summary {
+				if v["goodsConfigId"].(string) == prodRep.GoodsConfigID {
+					v["sales"] = prodRep.Sales
+					v["contribution"] = prodRep.Contribution
+				}
+			}
+		}
+
+		salesReportModel.ProductSalesReportSummary = summary
+
+	}
+
+	curr[0].SalesReports = salesReportModels
+	return &Response{Res: curr}, nil
 }

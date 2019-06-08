@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/manyminds/api2go/jsonapi"
 	"gopkg.in/mgo.v2/bson"
+	"strconv"
 )
 
 type ProductConfig struct {
@@ -96,6 +97,12 @@ func (u *ProductConfig) GetConditionsBsonM(parameters map[string][]string) bson.
 			}
 			r["$in"] = ids
 			rst["_id"] = r
+		case "product-type":
+			val, err := strconv.ParseFloat(v[0], 64)
+			if err != nil {
+				panic(err.Error())
+			}
+			rst[k] = val
 		}
 	}
 	return rst

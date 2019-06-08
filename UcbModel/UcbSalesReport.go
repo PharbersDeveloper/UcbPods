@@ -23,6 +23,9 @@ type SalesReport struct {
 	Scenario					*Scenario `json:"-"`
 
 	Time 						float64 `json:"time" bson:"time"`
+
+	HospitalSalesReportSummary	map[string]interface{} `json:"hospital-sales-report-summary"`
+	ProductSalesReportSummary	[]map[string]interface{} `json:"product-sales-report-summary"`
 }
 
 // GetID to satisfy jsonapi.MarshalIdentifier interface

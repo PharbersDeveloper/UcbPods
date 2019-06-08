@@ -71,13 +71,13 @@ func (c UcbSalesReportResource) NewSalesReportResource(args []BmDataStorage.BmSt
 
 // FindAll SalesConfigs
 func (c UcbSalesReportResource) FindAll(r api2go.Request) (api2go.Responder, error) {
-	papersID, dcok := r.QueryParams["papersID"]
-	proposalsID, pok := r.QueryParams["proposalsID"]
+	papersID, dcOk := r.QueryParams["papersID"]
+	proposalsID, pOk := r.QueryParams["proposalsID"]
 
 	var result []UcbModel.SalesReport
 
 
-	if dcok {
+	if dcOk {
 		modelRootID := papersID[0]
 		modelRoot, err := c.UcbPaperStorage.GetOne(modelRootID)
 		if err != nil {
@@ -86,12 +86,13 @@ func (c UcbSalesReportResource) FindAll(r api2go.Request) (api2go.Responder, err
 
 		r.QueryParams["ids"] = modelRoot.SalesReportIDs
 
+
 		result := c.UcbSalesReportStorage.GetAll(r, -1,-1)
 
 		return &Response{Res: result}, nil
 	}
 
-	if pok {
+	if pOk {
 		modelRootID := proposalsID[0]
 		modelRoot, err := c.UcbProposalStorage.GetOne(modelRootID)
 		if err != nil {
