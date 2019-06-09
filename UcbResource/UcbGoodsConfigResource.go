@@ -20,6 +20,7 @@ type UcbGoodsConfigResource struct {
 	UcbSalesConfigStorage 				*UcbDataStorage.UcbSalesConfigStorage
 	UcbGoodsinputStorage				*UcbDataStorage.UcbGoodsinputStorage
 	UcbManagerGoodsConfigStorage		*UcbDataStorage.UcbManagerGoodsConfigStorage
+	UcbCitySalesReportStorage 			*UcbDataStorage.UcbCitySalesReportStorage
 }
 
 func (s UcbGoodsConfigResource) NewGoodsConfigResource(args []BmDataStorage.BmStorage) *UcbGoodsConfigResource {
@@ -31,6 +32,7 @@ func (s UcbGoodsConfigResource) NewGoodsConfigResource(args []BmDataStorage.BmSt
 	var sc *UcbDataStorage.UcbSalesConfigStorage
 	var gis *UcbDataStorage.UcbGoodsinputStorage
 	var mgcs *UcbDataStorage.UcbManagerGoodsConfigStorage
+	var csrs *UcbDataStorage.UcbCitySalesReportStorage
 
 	for _, arg := range args {
 		tp := reflect.ValueOf(arg).Elem().Type()
@@ -50,6 +52,8 @@ func (s UcbGoodsConfigResource) NewGoodsConfigResource(args []BmDataStorage.BmSt
 			gis = arg.(*UcbDataStorage.UcbGoodsinputStorage)
 		} else if tp.Name() == "UcbManagerGoodsConfigStorage" {
 			mgcs = arg.(*UcbDataStorage.UcbManagerGoodsConfigStorage)
+		} else if tp.Name() == "UcbCitySalesReportStorage" {
+			csrs = arg.(*UcbDataStorage.UcbCitySalesReportStorage)
 		}
 	}
 	return &UcbGoodsConfigResource{
@@ -61,6 +65,7 @@ func (s UcbGoodsConfigResource) NewGoodsConfigResource(args []BmDataStorage.BmSt
 		UcbSalesConfigStorage: sc,
 		UcbGoodsinputStorage: gis,
 		UcbManagerGoodsConfigStorage: mgcs,
+		UcbCitySalesReportStorage: csrs,
 	}
 }
 

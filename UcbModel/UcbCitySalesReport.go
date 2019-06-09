@@ -22,9 +22,12 @@ type CitySalesReport struct {
 	SalesYearOnYear	float64	`json:"sales-year-on-year" bson:"sales-year-on-year"`
 	SalesMonthOnMonth float64	`json:"sales-month-on-month" bson:"sales-month-on-month"`
 	PatientCount	int		`json:"patient-count" bson:"patient-count"`
+	Contribution	float64 `json:"contribution" bson:"contribution"`
 
 	CityId		string `json:"-" bson:"city-id"`
 	City 		*City  `json:"-"`
+	GoodsConfigId	string `json:"-" bson:"goods-config-id"`
+	GoodsConfig		*GoodsConfig `json:"-"`
 }
 
 func (c CitySalesReport) GetID() string {
@@ -42,6 +45,10 @@ func (c CitySalesReport) GetReferences() []jsonapi.Reference {
 			Type: "cities",
 			Name: "city",
 		},
+		{
+			Type: "goodsConfigs",
+			Name: "goodsConfig",
+		},
 	}
 }
 
@@ -56,6 +63,14 @@ func (c CitySalesReport) GetReferencedIDs() []jsonapi.ReferenceID {
 		})
 	}
 
+	if c.GoodsConfigId != "" {
+		result = append(result, jsonapi.ReferenceID{
+			ID:   c.GoodsConfigId,
+			Type: "goodsConfigs",
+			Name: "goodsConfig",
+		})
+	}
+
 	return result
 }
 
@@ -65,12 +80,21 @@ func (c CitySalesReport) GetReferencedStructs() []jsonapi.MarshalIdentifier {
 	if c.CityId != "" && c.City != nil {
 		result = append(result, c.City)
 	}
+
+	if c.GoodsConfigId != "" && c.GoodsConfig != nil {
+		result = append(result, c.GoodsConfig)
+	}
 	return result
 }
 
 func (c *CitySalesReport) SetToOneReferenceID(name, ID string) error {
 	if name == "city" {
 		c.CityId = ID
+		return nil
+	}
+
+	if name == "goodsConfig" {
+		c.GoodsConfigId = ID
 		return nil
 	}
 

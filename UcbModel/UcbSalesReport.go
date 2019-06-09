@@ -25,7 +25,9 @@ type SalesReport struct {
 	Time 						float64 `json:"time" bson:"time"`
 
 	HospitalSalesReportSummary	map[string]interface{} `json:"hospital-sales-report-summary"`
-	ProductSalesReportSummary	[]map[string]interface{} `json:"product-sales-report-summary"`
+	ProductSalesReportSummary	map[string]interface{} `json:"product-sales-report-summary"`
+	CitySalesReportSummary map[string]interface{} `json:"city-sales-report-summary"`
+	RepresentativeSalesReportSummary map[string]interface{} `json:"representative-sales-report-summary"`
 }
 
 // GetID to satisfy jsonapi.MarshalIdentifier interface
