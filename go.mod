@@ -10,6 +10,7 @@ require (
 	github.com/hashicorp/go-uuid v1.0.1
 	github.com/julienschmidt/httprouter v1.2.0
 	github.com/manyminds/api2go v0.0.0-20190324173508-d4f7fae65b4b
+	github.com/mitchellh/mapstructure v1.1.2
 	gopkg.in/mgo.v2 v2.0.0-20180705113604-9856a29383ce
 	gopkg.in/yaml.v2 v2.2.2 // indirect
 )

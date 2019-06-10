@@ -10,9 +10,13 @@ import (
 type HospitalSalesReport struct {
 	ID         		string        `json:"-"`
 	Id_        		bson.ObjectId `json:"-" bson:"_id"`
-	DestConfigID	string	`json:"-" bson:"dest-config-id"`
-	ResourceConfigID	string	`json:"-" bson:"resource-config-id"`
-	GoodsConfigID	string  `json:"-" bson:"goods-config-id"`
+	DestConfigID	string	`json:"-" bson:"dest-config-id" mapstructure:"hospital-id"`
+	ResourceConfigID	string	`json:"-" bson:"resource-config-id" mapstructure:"representative-id"`
+	GoodsConfigID	string  `json:"-" bson:"goods-config-id" mapstructure:"product-id"`
+
+	//HospitalID	string	`json:"-" bson:"dest-config-id"`
+	//ProductID	string	`json:"-" bson:"resource-config-id"`
+	//RepresentativeID	string  `json:"-" bson:"goods-config-id"`
 
 	DestConfig		*DestConfig	`json:"-"`
 	GoodsConfig 	*GoodsConfig `json:"-"`
@@ -21,21 +25,21 @@ type HospitalSalesReport struct {
 	//HospitalName 	string `json:"hospital-name" bson:"hospital-name"`
 	//ProductName		string `json:"product-name" bson:"product-name"`
 
-	Potential		float64	`json:"potential" bson:"potential"`
-	Sales			float64 `json:"sales" bson:"sales"`
-	SalesQuota 		float64	`json:"sales-quota" bson:"sales-quota"`
-	Share 			float64 `json:"share" bson:"share"`
-	QuotaAchievement float64 `json:"quota-achievement" bson:"quota-achievement"`
-	SalesGrowth		float64	`json:"sales-growth" bson:"sales-growth"`
+	Potential		float64	`json:"potential" bson:"potential" mapstructure:""`
+	Sales			float64 `json:"sales" bson:"sales" mapstructure:"sales"`
+	SalesQuota 		float64	`json:"sales-quota" bson:"sales-quota" mapstructure:"sales-quota"`
+	Share 			float64 `json:"share" bson:"share" mapstructure:"share"`
+	QuotaAchievement float64 `json:"quota-achievement" bson:"quota-achievement" mapstructure:"quota-achievement"`
+	SalesGrowth		float64	`json:"sales-growth" bson:"sales-growth" mapstructure:"sales-growth"`
 
-	QuotaContribute float64 `json:"quota-contribute" bson:"quota-contribute"`
-	QuotaGrowth		float64	`json:"quota-growth" bson:"quota-growth"`
-	YTDSales		float64	`json:"ytd-sales" bson:"ytd-sales"`
-	SalesContribute	float64	`json:"sales-contribute" bson:"sales-contribute"`
-	SalesYearOnYear	float64	`json:"sales-year-on-year" bson:"sales-year-on-year"`
-	SalesMonthOnMonth float64	`json:"sales-month-on-month" bson:"sales-month-on-month"`
-	DrugEntranceInfo  string	`json:"drug-entrance-info" bson:"drug-entrance-info"`
-	PatientCount		int		`json:"patient-count" bson:"patient-count"`
+	QuotaContribute float64 `json:"quota-contribute" bson:"quota-contribute" mapstructure:"quota-contribute"`
+	QuotaGrowth		float64	`json:"quota-growth" bson:"quota-growth" mapstructure:"quota-growth"`
+	YTDSales		float64	`json:"ytd-sales" bson:"ytd-sales" mapstructure:"ytd-sales"`
+	SalesContribute	float64	`json:"sales-contribute" bson:"sales-contribute" mapstructure:"sales-contribute"`
+	SalesYearOnYear	float64	`json:"sales-year-on-year" bson:"sales-year-on-year" mapstructure:"sales-year-on-year"`
+	SalesMonthOnMonth float64	`json:"sales-month-on-month" bson:"sales-month-on-month" mapstructure:"sales-month-on-month"`
+	DrugEntranceInfo  string	`json:"drug-entrance-info" bson:"drug-entrance-info" mapstructure:"drug-entrance-info"`
+	PatientCount		int		`json:"patient-count" bson:"patient-count" mapstructure:"patient-count"`
 
 }
 

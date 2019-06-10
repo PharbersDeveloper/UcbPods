@@ -2,6 +2,7 @@ package UcbHandler
 
 import (
 	"Ucb/UcbDataStorage"
+	"Ucb/UcbModel"
 	"encoding/json"
 	"fmt"
 	"github.com/alfredyang1986/BmServiceDef/BmDaemons"
@@ -9,6 +10,7 @@ import (
 	"github.com/alfredyang1986/BmServiceDef/BmDaemons/BmRedis"
 	"github.com/julienschmidt/httprouter"
 	"github.com/manyminds/api2go"
+	"github.com/mitchellh/mapstructure"
 	"io/ioutil"
 	"net/http"
 	"reflect"
@@ -28,6 +30,15 @@ type calcStruct struct {
 	Proposal   string                 `json:"proposal"`
 	PaperInput string                 `json:"paperInput"`
 	Scenario   map[string]interface{} `json:"scenario"`
+	Body       map[string]interface{} `json:"body"`
+}
+
+type resultStruct struct {
+	Header     map[string]string      `json:"header"`
+	Account    string                 `json:"account"`
+	Proposal   string                 `json:"proposal"`
+	PaperInput string                 `json:"paperInput"`
+	Scenario   string 				  `json:"scenario"`
 	Body       map[string]interface{} `json:"body"`
 }
 
@@ -66,7 +77,6 @@ func (h UcbCallRHandler) NewCallRHandler(args ...interface{}) UcbCallRHandler {
 	return UcbCallRHandler{Method: md, HttpMethod: hm, Args: ag, db: m, rd: r }
 }
 
-//rr api2go.Request
 func (h UcbCallRHandler) CallRCalculate(w http.ResponseWriter, r *http.Request, _ httprouter.Params) int {
 	mdb := []BmDaemons.BmDaemon{h.db}
 	w.Header().Add("Content-Type", "application/json")
@@ -286,4 +296,141 @@ func getApi2goRequest(r *http.Request, header http.Header) api2go.Request{
 		Header: header,
 		QueryParams: map[string][]string{},
 	}
+}
+
+func (h UcbCallRHandler) Temp(w http.ResponseWriter, r *http.Request, _ httprouter.Params) int {
+
+	str := `{
+		"header": {
+			"application": "ucb",
+			"contentType": "json"
+		},
+		"account": "account",
+		"proposal": "proposalid",
+		"scenario": "scenarioid",
+		"paperInput": "paperInputId",
+		"body": {
+			"hospitalSalesReports": [
+				{
+					"hospital-id": "xxx",
+					"product-id": "xxx",
+					"representative-id": "xxx",
+					"potential": 0,
+					"sales": 0,
+					"sales-quota": 0,
+					"share": 0,
+					"quota-achievement": 0,
+					"sales-growth": 0,
+					"quota-contribute": 0,
+					"quota-growth": 0,
+					"ytd-sales": 0,
+					"sales-contribute": 0,
+					"sales-year-on-year": 0,
+					"sales-month-on-month": 0,
+					"drug-entrance-info": "进药",
+					"patient-count": 0,
+					"contribute": 0
+				}
+			],
+			"representativeSalesReports": [
+				{
+					"representative-id": "xxx",
+					"product-id": "xxx",
+					"potential": 0,
+					"sales": 0,
+					"sales-quota": 0,
+					"share": 0,
+					"quota-achievement": 0,
+					"sales-growth": 0,
+					"quota-contribute": 0,
+					"quota-growth": 0,
+					"ytd-sales": 0,
+					"sales-contribute": 0,
+					"sales-year-on-year": 0,
+					"sales-month-on-month": 0,
+					"patient-count": 0,
+					"contribute": 0
+				}
+			],
+			"productSalesReports": [
+				{
+					"product-id": "xxx",
+					"sales": 0,
+					"sales-quota": 0,
+					"share": 0,
+					"quota-achievement": 0,
+					"sales-growth": 0,
+					"quota-contribute": 0,
+					"quota-growth": 0,
+					"ytd-sales": 0,
+					"sales-contribute": 0,
+					"sales-year-on-year": 0,
+					"sales-month-on-month": 0,
+					"patient-count": 0,
+					"contribute": 0
+				}
+			],
+			"citySalesReports": [
+				{
+					"city-id": "xxx",
+					"product-id": "xxx",
+					"sales": 0,
+					"sales-quota": 0,
+					"share": 0,
+					"quota-achievement": 0,
+					"sales-growth": 0,
+					"quota-contribute": 0,
+					"quota-growth": 0,
+					"ytd-sales": 0,
+					"sales-contribute": 0,
+					"sales-year-on-year": 0,
+					"sales-month-on-month": 0,
+					"patient-count": 0,
+					"contribute": 0
+				}
+			],
+			"simplifyReport": [
+				{
+					"level": "A或B或C",
+					"total-quota-achievement": 0,
+					"scenarioResult": [
+						{
+							"scenario-id": "xxx",
+							"quota-achievement": 0
+						}
+					]
+				}
+			]
+		},
+		"error": {
+			"code": 500,
+			"msg": "具体错误信息"
+		}
+	}`
+
+	var (
+		result resultStruct
+		hospitalSalesReport UcbModel.HospitalSalesReport
+	)
+
+	err := json.Unmarshal([]byte(str), &result)
+	if err != nil {
+		panic("计算失败")
+	}
+
+	body := result.Body
+
+	//mdb := []BmDaemons.BmDaemon{h.db}
+
+	//hospitalSalesReportStorage := UcbDataStorage.UcbHospitalSalesReportStorage{}.NewHospitalSalesReportStorage(mdb)
+
+	hospitalSalesReports := body["hospitalSalesReports"].([]interface{})
+	for _, v := range hospitalSalesReports {
+		err = mapstructure.Decode(v, &hospitalSalesReport)
+		//ID := hospitalSalesReportStorage.Insert(hospitalSalesReport)
+		//fmt.Println(ID)
+		//hospitalSalesReport := v.(UcbModel.HospitalSalesReport)
+		//fmt.Println(hospitalSalesReport)
+	}
+	return 0
 }

@@ -173,6 +173,7 @@ var NTM_FUNCTION_FACTORY = map[string]interface{}{
 	"UcbCommonPanicHandle":         	UcbHandler.CommonPanicHandle{},
 	"UcbGeneratePaperHandler": 			UcbHandler.UcbGeneratePaperHandler{},
 	"UcbCallRHandler":					UcbHandler.UcbCallRHandler{},
+	"UcbRResulrHandler":				UcbHandler.UcbCallRHandler{},
 }
 var NTM_MIDDLEWARE_FACTORY = map[string]interface{}{
 	"UcbCheckTokenMiddleware": UcbMiddleware.UcbCheckTokenMiddleware{},
