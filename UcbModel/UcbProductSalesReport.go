@@ -28,7 +28,6 @@ type ProductSalesReport struct {
 	SalesContribute	float64	`json:"sales-contribute" bson:"sales-contribute"`
 	SalesYearOnYear	float64	`json:"sales-year-on-year" bson:"sales-year-on-year"`
 	SalesMonthOnMonth float64	`json:"sales-month-on-month" bson:"sales-month-on-month"`
-	Contribution	float64		`json:"contribution" bson:"contribution"`
 }
 
 // GetID to satisfy jsonapi.MarshalIdentifier interfac

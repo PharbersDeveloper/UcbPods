@@ -4,7 +4,9 @@ import (
 	"Ucb/UcbDataStorage"
 	"Ucb/UcbModel"
 	"Ucb/Util/array"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/alfredyang1986/BmServiceDef/BmDataStorage"
 	"github.com/manyminds/api2go"
 	"net/http"
@@ -339,7 +341,7 @@ func (s UcbPaperResource) productSalesReportSummary(r api2go.Request) (api2go.Re
 					if v == prodRep.GoodsConfigID {
 						tempMap["goodsName"] = productModel.Name
 						tempMap["sales"] = prodRep.Sales
-						tempMap["contribution"] = prodRep.Contribution
+						tempMap["contribution"] = prodRep.SalesContribute
 					}
 				}
 				detail = append(detail, tempMap)
@@ -395,7 +397,7 @@ func (s UcbPaperResource) citySalesReportSummary(r api2go.Request) (api2go.Respo
 			for _, citySalesReport := range citySalesReports {
 				if cityId == citySalesReport.CityId {
 					sales = sales + citySalesReport.Sales
-					contribution = contribution + citySalesReport.Contribution
+					contribution = contribution + citySalesReport.SalesContribute
 				}
 			}
 
@@ -426,8 +428,14 @@ func (s UcbPaperResource) representativeSalesReportSummary(r api2go.Request) (ap
 	for _, salesReportModel := range srms {
 		var (
 			summary map[string]interface{}
-			sales float64
-			contribution float64
+			salesTo3 float64
+			salesTo2 float64
+			salesTo1 float64
+			salesOut float64
+			contributionTo3 float64
+			contributionTo2 float64
+			contributionTo1 float64
+			contributionOut float64
 			detail []interface{}
 		)
 		summary = map[string]interface{}{}
@@ -438,37 +446,66 @@ func (s UcbPaperResource) representativeSalesReportSummary(r api2go.Request) (ap
 
 		summary["scenarioName"] = scenarioModel.Name
 
-		r.QueryParams["ids"] = salesReportModel.RepresentativeSalesReportIDs
+		r.QueryParams["ids"] = salesReportModel.HospitalSalesReportIDs
 
-		representativeSalesReports := s.UcbRepresentativeSalesReportStorage.GetAll(r, -1,-1)
+		hospitalSalesReports := s.UcbHospitalSalesReportStorage.GetAll(r, -1,-1)
 
 		r.QueryParams = map[string][]string{}
 		r.QueryParams["scenario-id"] = []string{salesReportModel.ScenarioID}
 		r.QueryParams["resource-type"] = []string{"1"}
 
-		resourceConfigs := s.UcbResourceConfigStorage.GetAll(r, -1, -1)
+		destConfigs := s.UcbDestConfigStorage.GetAll(r, -1, -1)
 
-		for _, resourceConfig := range  resourceConfigs {
-
-			representativeConfig, _:= s.UcbRepresentativeConfigStorage.GetOne(resourceConfig.ResourceID)
-			representative, _ := s.UcbRepresentativeStorage.GetOne(representativeConfig.RepresentativeID)
-			for _, representativeSalesReport := range representativeSalesReports {
-				if resourceConfig.ID == representativeSalesReport.ResourceConfigID {
-					sales = sales + representativeSalesReport.Sales
-					contribution = contribution + representativeSalesReport.Contribution
+		for _, destConfig := range  destConfigs {
+			hospitalConfig, _:= s.UcbHospitalConfigStorage.GetOne(destConfig.DestID)
+			hospital, _ := s.UcbHospitalStorage.GetOne(hospitalConfig.HospitalID)
+			for _, hospitalSalesReport := range hospitalSalesReports {
+				if destConfig.ID == hospitalSalesReport.DestConfigID && hospital.HospitalLevel == "三级"{
+					salesTo3 = salesTo3 + hospitalSalesReport.Sales
+					contributionTo3 = contributionTo3 + hospitalSalesReport.SalesContribute
+				} else if destConfig.ID == hospitalSalesReport.DestConfigID && hospital.HospitalLevel == "二级" {
+					salesTo2 = salesTo2 + hospitalSalesReport.Sales
+					contributionTo2 = contributionTo2 + hospitalSalesReport.SalesContribute
+				} else if destConfig.ID == hospitalSalesReport.DestConfigID && hospital.HospitalLevel == "一级" {
+					salesTo1 = salesTo1 + hospitalSalesReport.Sales
+					contributionTo1 = contributionTo1 + hospitalSalesReport.SalesContribute
+				} else if hospitalSalesReport.DestConfigID == "-1" {
+					salesOut = salesOut + hospitalSalesReport.Sales
+					contributionOut = contributionOut + hospitalSalesReport.SalesContribute
 				}
 			}
-
-			detail = append(detail, map[string]interface{}{
-				"representativeName": representative.Name,
-				"sales": sales,
-				"contribution": contribution,
-			})
 		}
+
+		detail = append(detail, map[string]interface{}{
+			"hospitalLevel": "院外",
+			"sales": salesOut,
+			"contribution": contributionOut,
+		})
+
+		detail = append(detail, map[string]interface{}{
+			"hospitalLevel": "三级",
+			"sales": salesTo3,
+			"contribution": contributionTo3,
+		})
+
+		detail = append(detail, map[string]interface{}{
+			"hospitalLevel": "二级",
+			"sales": salesTo2,
+			"contribution": contributionTo2,
+		})
+
+		detail = append(detail, map[string]interface{}{
+			"hospitalLevel": "一级",
+			"sales": salesTo1,
+			"contribution": contributionTo1,
+		})
 
 		summary["values"] = detail
 
-		salesReportModel.RepresentativeSalesReportSummary = summary
+		a, _ := json.MarshalIndent(summary, "", "	")
+		fmt.Println(string(a))
+
+		salesReportModel.HospitalSalesReportSummary = summary
 	}
 
 	curr[0].SalesReports = salesReportModels
