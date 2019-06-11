@@ -4,7 +4,10 @@ go 1.12
 
 require (
 	github.com/alfredyang1986/BmServiceDef v0.0.0-20190410064517-b341f9e1e85e
-	github.com/alfredyang1986/blackmirror v0.0.0-20190305121812-d8d7643fb552 // indirect
+	github.com/alfredyang1986/blackmirror v0.0.3
+	github.com/confluentinc/confluent-kafka-go v1.0.0 // indirect
+	github.com/elodina/go-avro v0.0.0-20160406082632-0c8185d9a3ba
+	github.com/elodina/go-kafka-avro v0.0.0-20160422130714-ab6b1d1c9a23
 	github.com/gedex/inflector v0.0.0-20170307190818-16278e9db813 // indirect
 	github.com/go-redis/redis v6.15.2+incompatible // indirect
 	github.com/hashicorp/go-uuid v1.0.1

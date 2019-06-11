@@ -8,11 +8,13 @@ import (
 	"github.com/alfredyang1986/BmServiceDef/BmDaemons"
 	"github.com/alfredyang1986/BmServiceDef/BmDaemons/BmMongodb"
 	"github.com/alfredyang1986/BmServiceDef/BmDaemons/BmRedis"
+	"github.com/alfredyang1986/blackmirror/bmkafka"
 	"github.com/julienschmidt/httprouter"
 	"github.com/manyminds/api2go"
 	"github.com/mitchellh/mapstructure"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"reflect"
 )
 
@@ -73,6 +75,12 @@ func (h UcbCallRHandler) NewCallRHandler(args ...interface{}) UcbCallRHandler {
 		} else {
 		}
 	}
+
+	//env := os.Getenv("BM_KAFKA_CONF_HOME")
+	//os.Setenv("BM_KAFKA_CONF_HOME", env + "/resource/kafkaconfig.json")
+	//kafka, _ := bmkafka.GetConfigInstance()
+	//topic := kafka.Topics[len(kafka.Topics) -1:]
+	//kafka.SubscribeTopics(topic, h.subscriptionFunc)
 
 	return UcbCallRHandler{Method: md, HttpMethod: hm, Args: ag, db: m, rd: r }
 }
@@ -146,7 +154,8 @@ func (h UcbCallRHandler) CallRCalculate(w http.ResponseWriter, r *http.Request, 
 	hospitalSalesReport := UcbDataStorage.UcbHospitalSalesReportStorage{}.NewHospitalSalesReportStorage(mdb)
 
 	// 最新的paper
-	paper := paperStorage.GetAll(req, -1, -1)[0]
+	papers := paperStorage.GetAll(req, -1, -1)
+	paper := papers[len(papers) - 1]
 
 	// 最新的输入
 	paperInput, _ := paperInputStorage.GetOne(paper.InputIDs[len(paper.InputIDs) - 1])
@@ -158,7 +167,7 @@ func (h UcbCallRHandler) CallRCalculate(w http.ResponseWriter, r *http.Request, 
 	businessInputs := businessInputStorage.GetAll(req, -1,-1)
 	for _, businessInput := range businessInputs {
 		var products []interface{}
-		product := map[string]interface{}{}
+
 		hospitalMap := map[string]interface{}{}
 		representativeMap := map[string]interface{}{}
 
@@ -174,6 +183,7 @@ func (h UcbCallRHandler) CallRCalculate(w http.ResponseWriter, r *http.Request, 
 		req.QueryParams["ids"] = businessInput.GoodsInputIds
 		goodsInputs := goodsInputStorage.GetAll(req, -1, -1)
 		for _, goodsInput := range goodsInputs {
+			product := map[string]interface{}{}
 			goodsConfig, _ := goodsConfigStorage.GetOne(goodsInput.GoodsConfigId)
 			productConfig, _ := productConfigStorage.GetOne(goodsConfig.GoodsID)
 			productModel, _ := productStorage.GetOne(productConfig.ProductID)
@@ -213,7 +223,7 @@ func (h UcbCallRHandler) CallRCalculate(w http.ResponseWriter, r *http.Request, 
 	cleanQueryParams(&req)
 	req.QueryParams["ids"] = paper.SalesReportIDs[len(paper.SalesReportIDs) - 4:]
 	for _, salesReport := range salesReportStorage.GetAll(req, -1, -1) {
-		hospitalMap := map[string]interface{}{}
+
 		scenarioMap := map[string]interface{}{}
 
 		scenario, _ := scenarioStorage.GetOne(salesReport.ScenarioID)
@@ -222,28 +232,31 @@ func (h UcbCallRHandler) CallRCalculate(w http.ResponseWriter, r *http.Request, 
 
 		req.QueryParams["ids"] = salesReport.HospitalSalesReportIDs
 		for _, hospitalSalesReport := range hospitalSalesReport.GetAll(req, -1, -1) {
-			destConfig, _ := destConfigStorage.GetOne(hospitalSalesReport.DestConfigID)
-			hospitalConfig, _ := hospitalConfigStorage.GetOne(destConfig.DestID)
-			hospital, _ := hospitalStorage.GetOne(hospitalConfig.HospitalID)
+			hospitalMap := map[string]interface{}{}
+			if hospitalSalesReport.DestConfigID != "-1" {
+				destConfig, _ := destConfigStorage.GetOne(hospitalSalesReport.DestConfigID)
+				hospitalConfig, _ := hospitalConfigStorage.GetOne(destConfig.DestID)
+				hospital, _ := hospitalStorage.GetOne(hospitalConfig.HospitalID)
 
-			resourceConfig, _ := resourceConfigStorage.GetOne(hospitalSalesReport.ResourceConfigID)
-			representativeConfig, _ := representativeConfigStorage.GetOne(resourceConfig.ResourceID)
-			representative, _ := representativeStorage.GetOne(representativeConfig.RepresentativeID)
+				resourceConfig, _ := resourceConfigStorage.GetOne(hospitalSalesReport.ResourceConfigID)
+				representativeConfig, _ := representativeConfigStorage.GetOne(resourceConfig.ResourceID)
+				representative, _ := representativeStorage.GetOne(representativeConfig.RepresentativeID)
 
-			goodsConfig, _  := goodsConfigStorage.GetOne(hospitalSalesReport.GoodsConfigID)
-			productConfig, _ := productConfigStorage.GetOne(goodsConfig.GoodsID)
-			product, _ := productStorage.GetOne(productConfig.ProductID)
+				goodsConfig, _  := goodsConfigStorage.GetOne(hospitalSalesReport.GoodsConfigID)
+				productConfig, _ := productConfigStorage.GetOne(goodsConfig.GoodsID)
+				product, _ := productStorage.GetOne(productConfig.ProductID)
 
-			hospitalMap["scenario"] = scenarioMap
-			hospitalMap["hospital-name"] = hospital.Name
-			hospitalMap["representative-name"] = representative.Name
-			hospitalMap["product-name"] = product.Name
+				hospitalMap["scenario"] = scenarioMap
+				hospitalMap["hospital-name"] = hospital.Name
+				hospitalMap["representative-name"] = representative.Name
+				hospitalMap["product-name"] = product.Name
 
-			hospitalMap["sales"] = hospitalSalesReport.Sales
-			hospitalMap["sales-quota"] = hospitalSalesReport.SalesQuota
-			hospitalMap["ytd-sales"] = hospitalSalesReport.YTDSales
-			hospitalMap["drug-entrance-info"] = hospitalSalesReport.DrugEntranceInfo
-			histories = append(histories, hospitalMap)
+				hospitalMap["sales"] = hospitalSalesReport.Sales
+				hospitalMap["sales-quota"] = hospitalSalesReport.SalesQuota
+				hospitalMap["ytd-sales"] = hospitalSalesReport.YTDSales
+				hospitalMap["drug-entrance-info"] = hospitalSalesReport.DrugEntranceInfo
+				histories = append(histories, hospitalMap)
+			}
 		}
 	}
 
@@ -272,9 +285,17 @@ func (h UcbCallRHandler) CallRCalculate(w http.ResponseWriter, r *http.Request, 
 		Body:       body,
 	}
 
-	c, _ := json.MarshalIndent(cs, "", " ")
+	c, _ := json.Marshal(cs)
 	fmt.Println(string(c))
 
+	env := os.Getenv("BM_KAFKA_CONF_HOME")
+	os.Setenv("BM_KAFKA_CONF_HOME", env + "/resource/kafkaconfig.json")
+	kafka, err := bmkafka.GetConfigInstance()
+	if err != nil {
+		panic(err)
+	}
+	topic := kafka.Topics[0]
+	kafka.Produce(&topic, c)
 	return 0
 }
 
@@ -295,6 +316,143 @@ func getApi2goRequest(r *http.Request, header http.Header) api2go.Request{
 		PlainRequest: r,
 		Header: header,
 		QueryParams: map[string][]string{},
+	}
+}
+
+
+func (h UcbCallRHandler) subscriptionFunc(content interface{}) {
+
+	str := `{
+		"header": {
+			"application": "ucb",
+			"contentType": "json"
+		},
+		"account": "account",
+		"proposal": "proposalid",
+		"scenario": "scenarioid",
+		"paperInput": "paperInputId",
+		"body": {
+			"hospitalSalesReports": [
+				{
+					"hospital-id": "xxx",
+					"product-id": "xxx",
+					"representative-id": "xxx",
+					"potential": 0,
+					"sales": 0,
+					"sales-quota": 0,
+					"share": 0,
+					"quota-achievement": 0,
+					"sales-growth": 0,
+					"quota-contribute": 0,
+					"quota-growth": 0,
+					"ytd-sales": 0,
+					"sales-contribute": 0,
+					"sales-year-on-year": 0,
+					"sales-month-on-month": 0,
+					"drug-entrance-info": "进药",
+					"patient-count": 0,
+					"contribute": 0
+				}
+			],
+			"representativeSalesReports": [
+				{
+					"representative-id": "xxx",
+					"product-id": "xxx",
+					"potential": 0,
+					"sales": 0,
+					"sales-quota": 0,
+					"share": 0,
+					"quota-achievement": 0,
+					"sales-growth": 0,
+					"quota-contribute": 0,
+					"quota-growth": 0,
+					"ytd-sales": 0,
+					"sales-contribute": 0,
+					"sales-year-on-year": 0,
+					"sales-month-on-month": 0,
+					"patient-count": 0,
+					"contribute": 0
+				}
+			],
+			"productSalesReports": [
+				{
+					"product-id": "xxx",
+					"sales": 0,
+					"sales-quota": 0,
+					"share": 0,
+					"quota-achievement": 0,
+					"sales-growth": 0,
+					"quota-contribute": 0,
+					"quota-growth": 0,
+					"ytd-sales": 0,
+					"sales-contribute": 0,
+					"sales-year-on-year": 0,
+					"sales-month-on-month": 0,
+					"patient-count": 0,
+					"contribute": 0
+				}
+			],
+			"citySalesReports": [
+				{
+					"city-id": "xxx",
+					"product-id": "xxx",
+					"sales": 0,
+					"sales-quota": 0,
+					"share": 0,
+					"quota-achievement": 0,
+					"sales-growth": 0,
+					"quota-contribute": 0,
+					"quota-growth": 0,
+					"ytd-sales": 0,
+					"sales-contribute": 0,
+					"sales-year-on-year": 0,
+					"sales-month-on-month": 0,
+					"patient-count": 0,
+					"contribute": 0
+				}
+			],
+			"simplifyReport": [
+				{
+					"level": "A或B或C",
+					"total-quota-achievement": 0,
+					"scenarioResult": [
+						{
+							"scenario-id": "xxx",
+							"quota-achievement": 0
+						}
+					]
+				}
+			]
+		},
+		"error": {
+			"code": 500,
+			"msg": "具体错误信息"
+		}
+	}`
+
+	var (
+		result resultStruct
+		hospitalSalesReport UcbModel.HospitalSalesReport
+	)
+
+	err := json.Unmarshal([]byte(str), &result)
+	if err != nil {
+		panic("计算失败")
+	}
+
+	body := result.Body
+
+	//mdb := []BmDaemons.BmDaemon{h.db}
+
+	//hospitalSalesReportStorage := UcbDataStorage.UcbHospitalSalesReportStorage{}.NewHospitalSalesReportStorage(mdb)
+
+	hospitalSalesReports := body["hospitalSalesReports"].([]interface{})
+	for _, v := range hospitalSalesReports {
+		err = mapstructure.Decode(v, &hospitalSalesReport)
+		//ID := hospitalSalesReportStorage.Insert(hospitalSalesReport)
+		//fmt.Println(ID)
+		//hospitalSalesReport := v.(UcbModel.HospitalSalesReport)
+		//fmt.Println(hospitalSalesReport)
 	}
 }
 

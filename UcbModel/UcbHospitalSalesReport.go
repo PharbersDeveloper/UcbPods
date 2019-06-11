@@ -10,7 +10,7 @@ import (
 type HospitalSalesReport struct {
 	ID         		string        `json:"-"`
 	Id_        		bson.ObjectId `json:"-" bson:"_id"`
-	DestConfigID	string	`json:"-" bson:"dest-config-id" mapstructure:"hospital-id"`
+	DestConfigID	string	`json:"dest-config-id" bson:"dest-config-id" mapstructure:"hospital-id"`
 	ResourceConfigID	string	`json:"-" bson:"resource-config-id" mapstructure:"representative-id"`
 	GoodsConfigID	string  `json:"-" bson:"goods-config-id" mapstructure:"product-id"`
 
@@ -151,6 +151,10 @@ func (u *HospitalSalesReport) GetConditionsBsonM(parameters map[string][]string)
 			}
 			r["$in"] = ids
 			rst["_id"] = r
+		case "notEq[destConfigId]":
+			r := map[string]interface{}{}
+			r["$ne"] = v[0]
+			rst["dest-config-id"] = r
 		}
 	}
 

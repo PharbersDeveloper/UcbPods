@@ -115,6 +115,8 @@ func (h UcbGeneratePaperHandler) GeneratePaper(w http.ResponseWriter, r *http.Re
 		}
 
 		paperId = UcbDataStorage.UcbPaperStorage{}.NewPaperStorage(mdb).Insert(paperModel)
+	} else {
+		paperId = paper.ID
 	}
 
 	//if err != nil && err.Error() != "not found" {
@@ -153,9 +155,13 @@ func (h UcbGeneratePaperHandler) GeneratePaper(w http.ResponseWriter, r *http.Re
 	for k, v := range r.Header {
 		req.Header.Add(k, v[0])
 	}
-	response, _ := client.Do(req)
+	response, err:= client.Do(req)
 
-	responseBody, _ := ioutil.ReadAll(response.Body)
+	if err != nil {
+		panic(err)
+	}
+
+	responseBody, _:= ioutil.ReadAll(response.Body)
 
 	w.Header().Add("Content-Type", "application/json")
 	w.Write(responseBody)

@@ -25,6 +25,7 @@ type ProductConfig struct {
 	Convenience      string  `json:"convenience" bson:"convenience"`
 	TargetDepartment string  `json:"target-department" bson:"target-department"`
 	PatentDescribe	 string	 `json:"patent-describe" bson:"patent-describe"`
+	DailyCost		float64		`json:"daily-cost" bson:"daily-cost"`
 	ProductID string   `json:"-" bson:"product-id"`
 	Product   *Product `json:"-"`
 }

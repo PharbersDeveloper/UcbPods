@@ -4,9 +4,7 @@ import (
 	"Ucb/UcbDataStorage"
 	"Ucb/UcbModel"
 	"Ucb/Util/array"
-	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/alfredyang1986/BmServiceDef/BmDataStorage"
 	"github.com/manyminds/api2go"
 	"net/http"
@@ -501,9 +499,6 @@ func (s UcbPaperResource) representativeSalesReportSummary(r api2go.Request) (ap
 		})
 
 		summary["values"] = detail
-
-		a, _ := json.MarshalIndent(summary, "", "	")
-		fmt.Println(string(a))
 
 		salesReportModel.HospitalSalesReportSummary = summary
 	}

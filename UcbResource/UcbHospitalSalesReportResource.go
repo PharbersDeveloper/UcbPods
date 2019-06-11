@@ -51,6 +51,7 @@ func (c UcbHospitalSalesReportResource) NewHospitalSalesReportResource(args []Bm
 
 // FindAll SalesConfigs
 func (c UcbHospitalSalesReportResource) FindAll(r api2go.Request) (api2go.Responder, error) {
+	r.QueryParams["notEq[destConfigId]"] = []string{"-1"}
 	salesReportsID, dcok := r.QueryParams["salesReportsID"]
 
 	if dcok {
@@ -60,7 +61,6 @@ func (c UcbHospitalSalesReportResource) FindAll(r api2go.Request) (api2go.Respon
 			return &Response{}, nil
 		}
 		r.QueryParams["ids"] = modelRoot.HospitalSalesReportIDs
-
 		model := c.UcbHospitalSalesReportStorage.GetAll(r, -1,-1)
 
 		return &Response{Res: model}, nil
@@ -84,15 +84,14 @@ func (c UcbHospitalSalesReportResource) FindOne(ID string, r api2go.Request) (ap
 	if err != nil {
 		return &Response{}, err
 	}
-
-	dm, _ := c.UcbDestConfigStorage.GetOne(res.DestConfigID)
-	gm, _ := c.UcbGoodsConfigStorage.GetOne(res.GoodsConfigID)
-	rm, _ := c.UcbResourceConfigStorage.GetOne(res.ResourceConfigID)
-
-	res.DestConfig = &dm
-	res.GoodsConfig = &gm
-	res.ResourceConfig = &rm
-
+	if res.DestConfigID != "-1" {
+		dm, _ := c.UcbDestConfigStorage.GetOne(res.DestConfigID)
+		gm, _ := c.UcbGoodsConfigStorage.GetOne(res.GoodsConfigID)
+		rm, _ := c.UcbResourceConfigStorage.GetOne(res.ResourceConfigID)
+		res.DestConfig = &dm
+		res.GoodsConfig = &gm
+		res.ResourceConfig = &rm
+	}
 	return &Response{Res: res}, err
 }
 
