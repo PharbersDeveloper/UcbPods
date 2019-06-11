@@ -9,23 +9,23 @@ import (
 type CitySalesReport struct {
 	ID       string        `json:"-"`
 	Id_      bson.ObjectId `json:"-" bson:"_id"`
-	Sales			float64 `json:"sales" bson:"sales"`
-	SalesQuota 		float64	`json:"sales-quota" bson:"sales-quota"`
-	Share 			float64 `json:"share" bson:"share"`
-	QuotaAchievement float64 `json:"quota-achievement" bson:"quota-achievement"`
-	SalesGrowth		float64	`json:"sales-growth" bson:"sales-growth"`
+	Sales			float64 `json:"sales" bson:"sales" mapstructure:"sales"`
+	SalesQuota 		float64	`json:"sales-quota" bson:"sales-quota" mapstructure:"sales-quota"`
+	Share 			float64 `json:"share" bson:"share" mapstructure:"share"`
+	QuotaAchievement float64 `json:"quota-achievement" bson:"quota-achievement" mapstructure:"quota-achievement"`
+	SalesGrowth		float64	`json:"sales-growth" bson:"sales-growth" mapstructure:"sales-growth"`
 
-	QuotaContribute float64 `json:"quota-contribute" bson:"quota-contribute"`
-	QuotaGrowth		float64	`json:"quota-growth" bson:"quota-growth"`
-	YTDSales		float64	`json:"ytd-sales" bson:"ytd-sales"`
-	SalesContribute	float64	`json:"sales-contribute" bson:"sales-contribute"`
-	SalesYearOnYear	float64	`json:"sales-year-on-year" bson:"sales-year-on-year"`
-	SalesMonthOnMonth float64	`json:"sales-month-on-month" bson:"sales-month-on-month"`
-	PatientCount	int		`json:"patient-count" bson:"patient-count"`
+	QuotaContribute float64 `json:"quota-contribute" bson:"quota-contribute" mapstructure:"quota-contribute"`
+	QuotaGrowth		float64	`json:"quota-growth" bson:"quota-growth" mapstructure:"quota-growth"`
+	YTDSales		float64	`json:"ytd-sales" bson:"ytd-sales" mapstructure:"ytd-sales"`
+	SalesContribute	float64	`json:"sales-contribute" bson:"sales-contribute" mapstructure:"sales-contribute"`
+	SalesYearOnYear	float64	`json:"sales-year-on-year" bson:"sales-year-on-year" mapstructure:"sales-year-on-year"`
+	SalesMonthOnMonth float64	`json:"sales-month-on-month" bson:"sales-month-on-month" mapstructure:"sales-month-on-month"`
+	PatientCount	int		`json:"patient-count" bson:"patient-count" mapstructure:"patient-count"`
 
-	CityId		string `json:"-" bson:"city-id"`
+	CityId		string `json:"-" bson:"city-id" mapstructure:"city-id"`
 	City 		*City  `json:"-"`
-	GoodsConfigId	string `json:"-" bson:"goods-config-id"`
+	GoodsConfigId	string `json:"-" bson:"goods-config-id" mapstructure:"product-id"`
 	GoodsConfig		*GoodsConfig `json:"-"`
 }
 

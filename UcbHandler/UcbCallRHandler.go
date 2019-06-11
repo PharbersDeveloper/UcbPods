@@ -16,6 +16,7 @@ import (
 	"net/http"
 	"os"
 	"reflect"
+	"time"
 )
 
 type UcbCallRHandler struct {
@@ -76,11 +77,11 @@ func (h UcbCallRHandler) NewCallRHandler(args ...interface{}) UcbCallRHandler {
 		}
 	}
 
-	//env := os.Getenv("BM_KAFKA_CONF_HOME")
-	//os.Setenv("BM_KAFKA_CONF_HOME", env + "/resource/kafkaconfig.json")
-	//kafka, _ := bmkafka.GetConfigInstance()
-	//topic := kafka.Topics[len(kafka.Topics) -1:]
-	//kafka.SubscribeTopics(topic, h.subscriptionFunc)
+	env := os.Getenv("BM_KAFKA_CONF_HOME")
+	os.Setenv("BM_KAFKA_CONF_HOME", env + "/resource/kafkaconfig.json")
+	kafka, _ := bmkafka.GetConfigInstance()
+	topic := kafka.Topics[len(kafka.Topics) -1:]
+	kafka.SubscribeTopics(topic, h.subscriptionFunc)
 
 	return UcbCallRHandler{Method: md, HttpMethod: hm, Args: ag, db: m, rd: r }
 }
@@ -319,8 +320,22 @@ func getApi2goRequest(r *http.Request, header http.Header) api2go.Request{
 	}
 }
 
-
 func (h UcbCallRHandler) subscriptionFunc(content interface{}) {
+	mdb := []BmDaemons.BmDaemon{h.db}
+	hospitalSalesReportStorage := UcbDataStorage.UcbHospitalSalesReportStorage{}.NewHospitalSalesReportStorage(mdb)
+	productSalesReportStorage := UcbDataStorage.UcbProductSalesReportStorage{}.NewProductSalesReportStorage(mdb)
+	representativeSalesReportStorage := UcbDataStorage.UcbRepresentativeSalesReportStorage{}.NewRepresentativeSalesReportStorage(mdb)
+	citySalesReportStorage := UcbDataStorage.UcbCitySalesReportStorage{}.NewCitySalesReportStorage(mdb)
+	salesReportStorage := UcbDataStorage.UcbSalesReportStorage{}.NewSalesReportStorage(mdb)
+	paperStorage := UcbDataStorage.UcbPaperStorage{}.NewPaperStorage(mdb)
+
+	req := api2go.Request{
+		QueryParams: map[string][]string{},
+	}
+
+
+	papers := paperStorage.GetAll(req, -1, -1)
+	paper := papers[len(papers) - 1]
 
 	str := `{
 		"header": {
@@ -433,6 +448,16 @@ func (h UcbCallRHandler) subscriptionFunc(content interface{}) {
 	var (
 		result resultStruct
 		hospitalSalesReport UcbModel.HospitalSalesReport
+		productSalesReport UcbModel.ProductSalesReport
+		representativeSalesReport UcbModel.RepresentativeSalesReport
+		citySalesReport UcbModel.CitySalesReport
+
+
+		hospitalSalesReportIDs []string
+		productSalesReportIDs []string
+		representativeSalesReportIDs []string
+		citySalesReportIDs []string
+
 	)
 
 	err := json.Unmarshal([]byte(str), &result)
@@ -442,153 +467,46 @@ func (h UcbCallRHandler) subscriptionFunc(content interface{}) {
 
 	body := result.Body
 
-	//mdb := []BmDaemons.BmDaemon{h.db}
-
-	//hospitalSalesReportStorage := UcbDataStorage.UcbHospitalSalesReportStorage{}.NewHospitalSalesReportStorage(mdb)
-
 	hospitalSalesReports := body["hospitalSalesReports"].([]interface{})
+	productSalesReports := body["productSalesReports"].([]interface{})
+	representativeSalesReports := body["representativeSalesReports"].([]interface{})
+	citySalesReports := body["citySalesReports"].([]interface{})
+
 	for _, v := range hospitalSalesReports {
-		err = mapstructure.Decode(v, &hospitalSalesReport)
-		//ID := hospitalSalesReportStorage.Insert(hospitalSalesReport)
-		//fmt.Println(ID)
-		//hospitalSalesReport := v.(UcbModel.HospitalSalesReport)
-		//fmt.Println(hospitalSalesReport)
+		mapstructure.Decode(v, &hospitalSalesReport)
+		hospitalSalesReportIDs = append(hospitalSalesReportIDs, hospitalSalesReportStorage.Insert(hospitalSalesReport))
 	}
-}
 
-func (h UcbCallRHandler) Temp(w http.ResponseWriter, r *http.Request, _ httprouter.Params) int {
+	for _, v := range productSalesReports {
+		mapstructure.Decode(v, &productSalesReport)
+		productSalesReportIDs = append(productSalesReportIDs, productSalesReportStorage.Insert(productSalesReport))
+	}
 
-	str := `{
-		"header": {
-			"application": "ucb",
-			"contentType": "json"
-		},
-		"account": "account",
-		"proposal": "proposalid",
-		"scenario": "scenarioid",
-		"paperInput": "paperInputId",
-		"body": {
-			"hospitalSalesReports": [
-				{
-					"hospital-id": "xxx",
-					"product-id": "xxx",
-					"representative-id": "xxx",
-					"potential": 0,
-					"sales": 0,
-					"sales-quota": 0,
-					"share": 0,
-					"quota-achievement": 0,
-					"sales-growth": 0,
-					"quota-contribute": 0,
-					"quota-growth": 0,
-					"ytd-sales": 0,
-					"sales-contribute": 0,
-					"sales-year-on-year": 0,
-					"sales-month-on-month": 0,
-					"drug-entrance-info": "进药",
-					"patient-count": 0,
-					"contribute": 0
-				}
-			],
-			"representativeSalesReports": [
-				{
-					"representative-id": "xxx",
-					"product-id": "xxx",
-					"potential": 0,
-					"sales": 0,
-					"sales-quota": 0,
-					"share": 0,
-					"quota-achievement": 0,
-					"sales-growth": 0,
-					"quota-contribute": 0,
-					"quota-growth": 0,
-					"ytd-sales": 0,
-					"sales-contribute": 0,
-					"sales-year-on-year": 0,
-					"sales-month-on-month": 0,
-					"patient-count": 0,
-					"contribute": 0
-				}
-			],
-			"productSalesReports": [
-				{
-					"product-id": "xxx",
-					"sales": 0,
-					"sales-quota": 0,
-					"share": 0,
-					"quota-achievement": 0,
-					"sales-growth": 0,
-					"quota-contribute": 0,
-					"quota-growth": 0,
-					"ytd-sales": 0,
-					"sales-contribute": 0,
-					"sales-year-on-year": 0,
-					"sales-month-on-month": 0,
-					"patient-count": 0,
-					"contribute": 0
-				}
-			],
-			"citySalesReports": [
-				{
-					"city-id": "xxx",
-					"product-id": "xxx",
-					"sales": 0,
-					"sales-quota": 0,
-					"share": 0,
-					"quota-achievement": 0,
-					"sales-growth": 0,
-					"quota-contribute": 0,
-					"quota-growth": 0,
-					"ytd-sales": 0,
-					"sales-contribute": 0,
-					"sales-year-on-year": 0,
-					"sales-month-on-month": 0,
-					"patient-count": 0,
-					"contribute": 0
-				}
-			],
-			"simplifyReport": [
-				{
-					"level": "A或B或C",
-					"total-quota-achievement": 0,
-					"scenarioResult": [
-						{
-							"scenario-id": "xxx",
-							"quota-achievement": 0
-						}
-					]
-				}
-			]
-		},
-		"error": {
-			"code": 500,
-			"msg": "具体错误信息"
-		}
-	}`
+	for _, v := range representativeSalesReports {
+		mapstructure.Decode(v, &representativeSalesReport)
+		representativeSalesReportIDs = append(representativeSalesReportIDs, representativeSalesReportStorage.Insert(representativeSalesReport))
+	}
 
-	var (
-		result resultStruct
-		hospitalSalesReport UcbModel.HospitalSalesReport
-	)
+	for _, v := range citySalesReports {
+		mapstructure.Decode(v, &citySalesReport)
+		citySalesReportIDs = append(citySalesReportIDs, citySalesReportStorage.Insert(citySalesReport))
+	}
 
-	err := json.Unmarshal([]byte(str), &result)
+	salesReportID := salesReportStorage.Insert(UcbModel.SalesReport{
+		ScenarioID: result.Scenario,
+		PaperInputID: result.PaperInput,
+		Time: time.Now().UnixNano(),
+		HospitalSalesReportIDs: hospitalSalesReportIDs,
+		ProductSalesReportIDs: productSalesReportIDs,
+		RepresentativeSalesReportIDs: representativeSalesReportIDs,
+		CitySalesReportIDs: citySalesReportIDs,
+	})
+
+	paper.SalesReportIDs = append(paper.SalesReportIDs, salesReportID)
+	err = paperStorage.Update(*paper)
 	if err != nil {
-		panic("计算失败")
+		panic("更新Paper失败")
 	}
 
-	body := result.Body
 
-	//mdb := []BmDaemons.BmDaemon{h.db}
-
-	//hospitalSalesReportStorage := UcbDataStorage.UcbHospitalSalesReportStorage{}.NewHospitalSalesReportStorage(mdb)
-
-	hospitalSalesReports := body["hospitalSalesReports"].([]interface{})
-	for _, v := range hospitalSalesReports {
-		err = mapstructure.Decode(v, &hospitalSalesReport)
-		//ID := hospitalSalesReportStorage.Insert(hospitalSalesReport)
-		//fmt.Println(ID)
-		//hospitalSalesReport := v.(UcbModel.HospitalSalesReport)
-		//fmt.Println(hospitalSalesReport)
-	}
-	return 0
 }

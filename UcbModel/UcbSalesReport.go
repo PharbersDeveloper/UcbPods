@@ -15,6 +15,7 @@ type SalesReport struct {
 	RepresentativeSalesReportIDs	[]string  	`json:"-" bson:"representative-sales-report-ids"`
 	ProductSalesReportIDs			[]string	`json:"-" bson:"product-sales-report-ids"`
 	CitySalesReportIDs				[]string	`json:"-" bson:"city-sales-report-ids"`
+	PaperInputID					string		`json:"-" bson:"paper-input-id"`
 
 	HospitalSalesReport 		[]*HospitalSalesReport			`json:"-"`
 	RepresentativeSalesReport	[]*RepresentativeSalesReport	`json:"-"`
@@ -22,7 +23,7 @@ type SalesReport struct {
 	CitySalesReport				[]*CitySalesReport				`json:"-"`
 	Scenario					*Scenario `json:"-"`
 
-	Time 						float64 `json:"time" bson:"time"`
+	Time 						int64 `json:"time" bson:"time"`
 
 	HospitalSalesReportSummary	map[string]interface{} `json:"hospital-sales-report-summary"`
 	ProductSalesReportSummary	map[string]interface{} `json:"product-sales-report-summary"`

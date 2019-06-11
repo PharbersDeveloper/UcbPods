@@ -14,18 +14,11 @@ type HospitalSalesReport struct {
 	ResourceConfigID	string	`json:"-" bson:"resource-config-id" mapstructure:"representative-id"`
 	GoodsConfigID	string  `json:"-" bson:"goods-config-id" mapstructure:"product-id"`
 
-	//HospitalID	string	`json:"-" bson:"dest-config-id"`
-	//ProductID	string	`json:"-" bson:"resource-config-id"`
-	//RepresentativeID	string  `json:"-" bson:"goods-config-id"`
-
 	DestConfig		*DestConfig	`json:"-"`
 	GoodsConfig 	*GoodsConfig `json:"-"`
 	ResourceConfig	*ResourceConfig	`json:"-"`
 
-	//HospitalName 	string `json:"hospital-name" bson:"hospital-name"`
-	//ProductName		string `json:"product-name" bson:"product-name"`
-
-	Potential		float64	`json:"potential" bson:"potential" mapstructure:""`
+	Potential		float64	`json:"potential" bson:"potential" mapstructure:"potential"`
 	Sales			float64 `json:"sales" bson:"sales" mapstructure:"sales"`
 	SalesQuota 		float64	`json:"sales-quota" bson:"sales-quota" mapstructure:"sales-quota"`
 	Share 			float64 `json:"share" bson:"share" mapstructure:"share"`
