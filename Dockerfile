@@ -5,19 +5,17 @@ FROM golang:1.12.4-alpine
 MAINTAINER Pharbers "pqian@pharbers.com"
 
 #LABEL
-LABEL UcbPods.version="0.0.13" maintainer="Alex"
+LABEL UcbPods.version="0.0.14" maintainer="Alex"
 
 # 安装git
 RUN apk add --no-cache git gcc musl-dev
 
-RUN git clone https://github.com/edenhill/librdkafka $GOPATH/librdkafka
+RUN git clone https://github.com/edenhill/librdkafka.git $GOPATH/librdkafka
 
-WORKDIR $GOPATH/librdkafka
-
-RUN chomd 777 configure && \
-    ./configure --prefix /usr  && \
-    make && \
-    make install
+WORKDIR /go/librdkafka
+RUN ./configure --prefix /usr  && \
+make && \
+make install
 
 ENV PKG_CONFIG_PATH /usr/lib/pkgconfig
 
