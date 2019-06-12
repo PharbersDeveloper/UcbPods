@@ -36,7 +36,8 @@ func main() {
 
 	handler := api.Handler().(*httprouter.Router)
 	pod.RegisterPanicHandler(handler)
-	http.ListenAndServe(":"+bmRouter.Port, handler)
+	err := http.ListenAndServe(":"+bmRouter.Port, handler)
+	fmt.Println(err)
 
-	fmt.Println("NTM pods archi ends, version =", version)
+
 }

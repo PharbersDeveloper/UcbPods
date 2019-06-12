@@ -80,6 +80,9 @@ func (c *Level) GetConditionsBsonM(parameters map[string][]string) bson.M {
 			}
 			r["$in"] = ids
 			rst["_id"] = r
+		case "code":
+			rst[k] = v[0]
+
 		}
 	}
 	return rst

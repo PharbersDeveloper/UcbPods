@@ -101,6 +101,9 @@ func (c *LevelConfig) GetConditionsBsonM(parameters map[string][]string) bson.M 
 			}
 			r["$in"] = ids
 			rst["_id"] = r
+		case "level-id":
+			rst[k] = v[0]
+
 		}
 	}
 	return rst

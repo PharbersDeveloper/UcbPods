@@ -29,10 +29,15 @@ type AssessmentReport struct {
 	GeneralPerformanceResultID		string	`json:"-" bson:"general-performance-id"`
 	GeneralPerformanceResult		*GeneralPerformanceResult	`json:"-"`
 
+	SimplifyResultID				string 	`json:"-" bson:"simplify-result-id"`
+	SimplifyResult					*SimplifyResult	`json:"-"`
+
 	ScenarioID						string 	`json:"-" bson:"scenario-id"`
 	Scenario						*Scenario `json:"-"`
 
-	Time 							float64 `json:"time" bson:"time"`
+	PaperInputID					string `json:"-" bson:"paper-input-id"`
+
+	Time 							int64 `json:"time" bson:"time"`
 }
 
 // GetID to satisfy jsonapi.MarshalIdentifier interface
@@ -72,6 +77,10 @@ func (u AssessmentReport) GetReferences() []jsonapi.Reference {
 		{
 			Type: "generalPerformanceResults",
 			Name: "generalPerformanceResult",
+		},
+		{
+			Type: "simplifyResults",
+			Name: "simplifyResult",
 		},
 		{
 			Type: "scenarios",
@@ -131,6 +140,13 @@ func (u AssessmentReport) GetReferencedIDs() []jsonapi.ReferenceID {
 			Name: "generalPerformanceResult",
 		})
 	}
+	if u.SimplifyResultID != "" {
+		result = append(result, jsonapi.ReferenceID{
+			ID: u.SimplifyResultID,
+			Type: "simplifyResults",
+			Name: "simplifyResult",
+		})
+	}
 
 
 	if u.ScenarioID != "" {
@@ -173,6 +189,10 @@ func (u AssessmentReport) GetReferencedStructs() []jsonapi.MarshalIdentifier {
 		result = append(result, u.GeneralPerformanceResult)
 	}
 
+	if u.SimplifyResultID != "" && u.SimplifyResult != nil {
+		result = append(result, u.SimplifyResult)
+	}
+
 	if u.ScenarioID != "" && u.Scenario != nil {
 		result = append(result, u.Scenario)
 	}
@@ -208,6 +228,11 @@ func (c *AssessmentReport) SetToOneReferenceID(name, ID string) error {
 
 	if name == "generalPerformanceResult" {
 		c.GeneralPerformanceResultID = ID
+		return nil
+	}
+
+	if name == "simplifyResult" {
+		c.SimplifyResultID = ID
 		return nil
 	}
 

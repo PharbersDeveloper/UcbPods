@@ -19,6 +19,7 @@ type UcbScenarioResource struct {
 	UcbPaperinputStorage	*UcbDataStorage.UcbPaperinputStorage
 	UcbPersonnelAssessmentStorage *UcbDataStorage.UcbPersonnelAssessmentStorage
 	UcbSalesReportStorage		*UcbDataStorage.UcbSalesReportStorage
+	UcbScenarioResultStorage	*UcbDataStorage.UcbScenarioResultStorage
 }
 
 func (c UcbScenarioResource) NewScenarioResource(args []BmDataStorage.BmStorage) *UcbScenarioResource {
@@ -28,6 +29,7 @@ func (c UcbScenarioResource) NewScenarioResource(args []BmDataStorage.BmStorage)
 	var pis *UcbDataStorage.UcbPaperinputStorage
 	var pass *UcbDataStorage.UcbPersonnelAssessmentStorage
 	var srs *UcbDataStorage.UcbSalesReportStorage
+	var srss *UcbDataStorage.UcbScenarioResultStorage
 
 	for _, arg := range args {
 		tp := reflect.ValueOf(arg).Elem().Type()
@@ -43,6 +45,8 @@ func (c UcbScenarioResource) NewScenarioResource(args []BmDataStorage.BmStorage)
 			pass = arg.(*UcbDataStorage.UcbPersonnelAssessmentStorage)
 		} else if tp.Name() == "UcbSalesReportStorage" {
 			srs = arg.(*UcbDataStorage.UcbSalesReportStorage)
+		} else if tp.Name() == "UcbScenarioResultStorage" {
+			srss = arg.(*UcbDataStorage.UcbScenarioResultStorage)
 		}
 	}
 	return &UcbScenarioResource{
@@ -52,6 +56,7 @@ func (c UcbScenarioResource) NewScenarioResource(args []BmDataStorage.BmStorage)
 		UcbPaperinputStorage: pis,
 		UcbPersonnelAssessmentStorage: pass,
 		UcbSalesReportStorage: srs,
+		UcbScenarioResultStorage: srss,
 	}
 }
 
@@ -65,6 +70,8 @@ func (c UcbScenarioResource) FindAll(r api2go.Request) (api2go.Responder, error)
 	paperinputsID, piok := r.QueryParams["paperinputsID"]
 	personnelAssessmentsID, paok := r.QueryParams["personnelAssessmentsID"]
 	salesReportsID, srok := r.QueryParams["salesReportsID"]
+
+	scenarioResultsID, sOk := r.QueryParams["scenarioResultsID"]
 
 
 	if psok && acok {
@@ -128,6 +135,19 @@ func (c UcbScenarioResource) FindAll(r api2go.Request) (api2go.Responder, error)
 	if srok {
 		modelRootID := salesReportsID[0]
 		modelRoot, err := c.UcbSalesReportStorage.GetOne(modelRootID)
+		if err != nil {
+			return &Response{}, err
+		}
+		model, err := c.UcbScenarioStorage.GetOne(modelRoot.ScenarioID)
+		if err != nil {
+			return &Response{}, err
+		}
+		return &Response{Res: model}, nil
+	}
+
+	if sOk {
+		modelRootID := scenarioResultsID[0]
+		modelRoot, err := c.UcbScenarioResultStorage.GetOne(modelRootID)
 		if err != nil {
 			return &Response{}, err
 		}

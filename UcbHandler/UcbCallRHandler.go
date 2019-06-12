@@ -32,7 +32,8 @@ type calcStruct struct {
 	Account    string                 `json:"account"`
 	Proposal   string                 `json:"proposal"`
 	PaperInput string                 `json:"paperInput"`
-	Scenario   map[string]interface{} `json:"scenario"`
+	CurrentScenario   map[string]interface{} `json:"currentScenario"`
+	Scenarios		[]interface{} `json:"scenarios"`
 	Body       map[string]interface{} `json:"body"`
 }
 
@@ -76,13 +77,13 @@ func (h UcbCallRHandler) NewCallRHandler(args ...interface{}) UcbCallRHandler {
 		} else {
 		}
 	}
-
-	env := os.Getenv("BM_KAFKA_CONF_HOME")
-	os.Setenv("BM_KAFKA_CONF_HOME", env + "/resource/kafkaconfig.json")
-	kafka, _ := bmkafka.GetConfigInstance()
-	topic := kafka.Topics[len(kafka.Topics) -1:]
-	kafka.SubscribeTopics(topic, h.subscriptionFunc)
-
+	//go func() {
+	//	env := os.Getenv("BM_KAFKA_CONF_HOME") + "/resource/kafkaconfig.json"
+	//	os.Setenv("BM_KAFKA_CONF_HOME", env)
+	//	kafka, _ := bmkafka.GetConfigInstance()
+	//	topic := kafka.Topics[len(kafka.Topics) -1:]
+	//	kafka.SubscribeTopics(topic, h.subscriptionFunc)
+	//}()
 	return UcbCallRHandler{Method: md, HttpMethod: hm, Args: ag, db: m, rd: r }
 }
 
@@ -263,34 +264,46 @@ func (h UcbCallRHandler) CallRCalculate(w http.ResponseWriter, r *http.Request, 
 
 
 	header := map[string]string{}
-	scenario := map[string]interface{}{}
+	currentScenario := map[string]interface{}{}
+	var scenarios []interface{}
 	body := map[string]interface{}{}
 
 	header["application"] = "ucb"
 	header["contentType"] = "json"
 
 	sm, _ := scenarioStorage.GetOne(scenarioId)
-	scenario["id"] = sm.ID
-	scenario["name"] = sm.Name
-	scenario["phase"] = sm.Phase
+	currentScenario["id"] = sm.ID
+	currentScenario["phase"] = sm.Phase
 
 	body["inputs"] = inputs
 	body["histories"] = histories
+
+	// 查询所有的周期
+	cleanQueryParams(&req)
+	req.QueryParams["proposal-id"] = []string{proposalId}
+	for _, v := range scenarioStorage.GetAll(req, -1, -1) {
+		if v.Phase > 0 {
+			scenarios = append(scenarios, map[string]interface{}{
+				"id": v.ID,
+				"phase" : v.Phase,
+			})
+		}
+	}
 
 	cs := &calcStruct {
 		Header:     header,
 		Account:    accountId,
 		Proposal:   proposalId,
 		PaperInput: paperInput.ID,
-		Scenario:   scenario,
+		CurrentScenario:   currentScenario,
+		Scenarios:		scenarios,
 		Body:       body,
 	}
 
 	c, _ := json.Marshal(cs)
-	fmt.Println(string(c))
 
-	env := os.Getenv("BM_KAFKA_CONF_HOME")
-	os.Setenv("BM_KAFKA_CONF_HOME", env + "/resource/kafkaconfig.json")
+	env := os.Getenv("BM_KAFKA_CONF_HOME") + "/resource/kafkaconfig.json"
+	os.Setenv("BM_KAFKA_CONF_HOME", env)
 	kafka, err := bmkafka.GetConfigInstance()
 	if err != nil {
 		panic(err)
@@ -322,12 +335,21 @@ func getApi2goRequest(r *http.Request, header http.Header) api2go.Request{
 
 func (h UcbCallRHandler) subscriptionFunc(content interface{}) {
 	mdb := []BmDaemons.BmDaemon{h.db}
+
+	scenarioStorage := UcbDataStorage.UcbScenarioStorage{}.NewScenarioStorage(mdb)
 	hospitalSalesReportStorage := UcbDataStorage.UcbHospitalSalesReportStorage{}.NewHospitalSalesReportStorage(mdb)
 	productSalesReportStorage := UcbDataStorage.UcbProductSalesReportStorage{}.NewProductSalesReportStorage(mdb)
 	representativeSalesReportStorage := UcbDataStorage.UcbRepresentativeSalesReportStorage{}.NewRepresentativeSalesReportStorage(mdb)
 	citySalesReportStorage := UcbDataStorage.UcbCitySalesReportStorage{}.NewCitySalesReportStorage(mdb)
 	salesReportStorage := UcbDataStorage.UcbSalesReportStorage{}.NewSalesReportStorage(mdb)
 	paperStorage := UcbDataStorage.UcbPaperStorage{}.NewPaperStorage(mdb)
+
+	levelStorage := UcbDataStorage.UcbLevelStorage{}.NewLevelStorage(mdb)
+	levelConfigStorage := UcbDataStorage.UcbLevelConfigStorage{}.NewLevelConfigStorage(mdb)
+
+	scenarioResultStorage := UcbDataStorage.UcbScenarioResultStorage{}.NewScenarioResultStorage(mdb)
+	simplifyResultStorage := UcbDataStorage.UcbSimplifyResultStorage{}.NewSimplifyResultStorage(mdb)
+	assessmentReportStorage := UcbDataStorage.UcbAssessmentReportStorage{}.NewAssessmentReportStorage(mdb)
 
 	req := api2go.Request{
 		QueryParams: map[string][]string{},
@@ -337,130 +359,25 @@ func (h UcbCallRHandler) subscriptionFunc(content interface{}) {
 	papers := paperStorage.GetAll(req, -1, -1)
 	paper := papers[len(papers) - 1]
 
-	str := `{
-		"header": {
-			"application": "ucb",
-			"contentType": "json"
-		},
-		"account": "account",
-		"proposal": "proposalid",
-		"scenario": "scenarioid",
-		"paperInput": "paperInputId",
-		"body": {
-			"hospitalSalesReports": [
-				{
-					"hospital-id": "xxx",
-					"product-id": "xxx",
-					"representative-id": "xxx",
-					"potential": 0,
-					"sales": 0,
-					"sales-quota": 0,
-					"share": 0,
-					"quota-achievement": 0,
-					"sales-growth": 0,
-					"quota-contribute": 0,
-					"quota-growth": 0,
-					"ytd-sales": 0,
-					"sales-contribute": 0,
-					"sales-year-on-year": 0,
-					"sales-month-on-month": 0,
-					"drug-entrance-info": "进药",
-					"patient-count": 0,
-					"contribute": 0
-				}
-			],
-			"representativeSalesReports": [
-				{
-					"representative-id": "xxx",
-					"product-id": "xxx",
-					"potential": 0,
-					"sales": 0,
-					"sales-quota": 0,
-					"share": 0,
-					"quota-achievement": 0,
-					"sales-growth": 0,
-					"quota-contribute": 0,
-					"quota-growth": 0,
-					"ytd-sales": 0,
-					"sales-contribute": 0,
-					"sales-year-on-year": 0,
-					"sales-month-on-month": 0,
-					"patient-count": 0,
-					"contribute": 0
-				}
-			],
-			"productSalesReports": [
-				{
-					"product-id": "xxx",
-					"sales": 0,
-					"sales-quota": 0,
-					"share": 0,
-					"quota-achievement": 0,
-					"sales-growth": 0,
-					"quota-contribute": 0,
-					"quota-growth": 0,
-					"ytd-sales": 0,
-					"sales-contribute": 0,
-					"sales-year-on-year": 0,
-					"sales-month-on-month": 0,
-					"patient-count": 0,
-					"contribute": 0
-				}
-			],
-			"citySalesReports": [
-				{
-					"city-id": "xxx",
-					"product-id": "xxx",
-					"sales": 0,
-					"sales-quota": 0,
-					"share": 0,
-					"quota-achievement": 0,
-					"sales-growth": 0,
-					"quota-contribute": 0,
-					"quota-growth": 0,
-					"ytd-sales": 0,
-					"sales-contribute": 0,
-					"sales-year-on-year": 0,
-					"sales-month-on-month": 0,
-					"patient-count": 0,
-					"contribute": 0
-				}
-			],
-			"simplifyReport": [
-				{
-					"level": "A或B或C",
-					"total-quota-achievement": 0,
-					"scenarioResult": [
-						{
-							"scenario-id": "xxx",
-							"quota-achievement": 0
-						}
-					]
-				}
-			]
-		},
-		"error": {
-			"code": 500,
-			"msg": "具体错误信息"
-		}
-	}`
-
 	var (
 		result resultStruct
 		hospitalSalesReport UcbModel.HospitalSalesReport
 		productSalesReport UcbModel.ProductSalesReport
 		representativeSalesReport UcbModel.RepresentativeSalesReport
 		citySalesReport UcbModel.CitySalesReport
-
+		scenarioResult UcbModel.ScenarioResult
 
 		hospitalSalesReportIDs []string
 		productSalesReportIDs []string
 		representativeSalesReportIDs []string
 		citySalesReportIDs []string
+		scenarioResultIDs []string
+
+		assessmentReportID string
 
 	)
 
-	err := json.Unmarshal([]byte(str), &result)
+	err := json.Unmarshal([]byte(content.(string)), &result)
 	if err != nil {
 		panic("计算失败")
 	}
@@ -503,10 +420,54 @@ func (h UcbCallRHandler) subscriptionFunc(content interface{}) {
 	})
 
 	paper.SalesReportIDs = append(paper.SalesReportIDs, salesReportID)
+
+
+	req.QueryParams["proposal-id"] = []string{result.Proposal}
+	scenarios := scenarioStorage.GetAll(req, -1,-1)
+	if s := scenarios[len(scenarios)-1]; s.ID == result.Scenario {
+		simplifyReport := body["simplifyReport"].(map[string]interface{})
+		level := simplifyReport["level"].(string)
+		totalQuotaAchievement := simplifyReport["total-quota-achievement"].(float64)
+		scenarioResults := simplifyReport["scenarioResults"].([]interface{})
+
+		req.QueryParams["code"] = []string{level}
+		levelModels := levelStorage.GetAll(req, -1,-1)
+		levelModel := levelModels[len(levelModels)-1]
+
+		req.QueryParams["code"] = []string{"6"} // 6 => UCB 测评报告
+		req.QueryParams["level-id"] = []string{levelModel.ID}
+		levelConfigs := levelConfigStorage.GetAll(req, -1,-1)
+		levelConfig := levelConfigs[len(levelModels) -1]
+
+		for _, v := range scenarioResults {
+			m := v.(map[string]interface{})
+			mapstructure.Decode(m, &scenarioResult)
+			scenarioResultIDs = append(scenarioResultIDs, scenarioResultStorage.Insert(scenarioResult))
+		}
+
+		simplifyResult := UcbModel.SimplifyResult {
+			ScenarioResultsIDs: scenarioResultIDs,
+			TotalQuotaAchievement: totalQuotaAchievement,
+			LevelConfigID: levelConfig.ID,
+		}
+
+		simplifyResultID := simplifyResultStorage.Insert(simplifyResult)
+
+		assessmentReport := UcbModel.AssessmentReport {
+			SimplifyResultID: simplifyResultID,
+			ScenarioID: result.Scenario,
+			Time: time.Now().UnixNano(),
+			PaperInputID: result.PaperInput,
+		}
+
+		assessmentReportID = assessmentReportStorage.Insert(assessmentReport)
+
+	}
+
+	paper.AssessmentReportIDs = append(paper.AssessmentReportIDs, assessmentReportID)
+
 	err = paperStorage.Update(*paper)
 	if err != nil {
 		panic("更新Paper失败")
 	}
-
-
 }
