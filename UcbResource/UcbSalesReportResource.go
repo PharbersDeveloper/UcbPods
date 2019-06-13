@@ -124,7 +124,9 @@ func (c UcbSalesReportResource) FindOne(ID string, r api2go.Request) (api2go.Res
 	modelRoot.HospitalSalesReport = []*UcbModel.HospitalSalesReport{}
 	r.QueryParams["ids"] = modelRoot.HospitalSalesReportIDs
 	for _, hospitalSalesReport := range c.UcbHospitalSalesReportStorage.GetAll(r, -1,-1) {
-		modelRoot.HospitalSalesReport = append(modelRoot.HospitalSalesReport, hospitalSalesReport)
+		if hospitalSalesReport.DestConfigID != "-1" {
+			modelRoot.HospitalSalesReport = append(modelRoot.HospitalSalesReport, hospitalSalesReport)
+		}
 	}
 
 	modelRoot.RepresentativeSalesReport = []*UcbModel.RepresentativeSalesReport{}

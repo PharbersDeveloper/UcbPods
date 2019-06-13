@@ -59,7 +59,7 @@ func (c UcbSalesConfigResource) FindAll(r api2go.Request) (api2go.Responder, err
 		if len(paperModel) > 0 {
 			// 获取这个用户在关卡下最新的报告
 			SalesReportIDs := paperModel[0].SalesReportIDs
-			LastSalesReportID := SalesReportIDs[len(SalesReportIDs)-1:][0]
+			LastSalesReportID := SalesReportIDs[len(SalesReportIDs)-1]
 			SalesReportResponse, err := c.UcbSalesReportResource.FindOne(LastSalesReportID, r)
 			if err != nil {
 				return &Response{}, err
