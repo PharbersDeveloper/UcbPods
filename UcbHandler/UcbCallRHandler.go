@@ -80,13 +80,13 @@ func (h UcbCallRHandler) NewCallRHandler(args ...interface{}) UcbCallRHandler {
 		} else {
 		}
 	}
-	go func() {
-		env := os.Getenv("BM_KAFKA_CONF_HOME") + "/resource/kafkaconfig.json"
-		os.Setenv("BM_KAFKA_CONF_HOME", env)
-		kafka, _ := bmkafka.GetConfigInstance()
-		topic := kafka.Topics[len(kafka.Topics) -1:]
-		kafka.SubscribeTopics(topic, subscriptionFunc)
-	}()
+	//go func() {
+	//	env := os.Getenv("BM_KAFKA_CONF_HOME") + "/resource/kafkaconfig.json"
+	//	os.Setenv("BM_KAFKA_CONF_HOME", env)
+	//	kafka, _ := bmkafka.GetConfigInstance()
+	//	topic := kafka.Topics[len(kafka.Topics) -1:]
+	//	kafka.SubscribeTopics(topic, subscriptionFunc)
+	//}()
 	UcbCallR = UcbCallRHandler{Method: md, HttpMethod: hm, Args: ag, db: m, rd: r }
 	return UcbCallR
 }
@@ -390,13 +390,6 @@ func getApi2goRequest(r *http.Request, header http.Header) api2go.Request{
 		Header: header,
 		QueryParams: map[string][]string{},
 	}
-}
-
-func (h UcbCallRHandler) SubscriptionFunc(w http.ResponseWriter, r *http.Request, _ httprouter.Params) int {
-	//c := []byte(``)
-
-	//h.subscriptionFunc(c)
-	return 0
 }
 
 func subscriptionFunc(content interface{}) {
