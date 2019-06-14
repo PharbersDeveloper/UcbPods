@@ -12,7 +12,7 @@ RUN apk add --no-cache git mercurial bash gcc g++ make pkgconfig
 ENV PKG_CONFIG_PATH /usr/lib/pkgconfig
 
 #LABEL
-LABEL UcbPods.version="0.0.16" maintainer="Alex"
+LABEL UcbPods.version="0.0.18" maintainer="Alex"
 
 RUN git clone https://github.com/edenhill/librdkafka.git $GOPATH/librdkafka
 
