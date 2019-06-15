@@ -205,6 +205,8 @@ func (u *SalesReport) GetConditionsBsonM(parameters map[string][]string) bson.M 
 			rst["_id"] = r
 		case "scenario-id":
 			rst[k] = v[0]
+		case "paperInput-id":
+			rst[k] = v[0]
 		}
 	}
 

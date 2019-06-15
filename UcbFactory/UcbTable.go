@@ -179,7 +179,9 @@ var NTM_FUNCTION_FACTORY = map[string]interface{}{
 	"UcbCommonPanicHandle":         	UcbHandler.CommonPanicHandle{},
 	"UcbGeneratePaperHandler": 			UcbHandler.UcbGeneratePaperHandler{},
 	"UcbCallRHandler":					UcbHandler.UcbCallRHandler{},
-	"UcbSubscriptionFuncHandler":				UcbHandler.UcbCallRHandler{},
+	"UcbSubscriptionFuncHandler":		UcbHandler.UcbCallRHandler{},
+	"UcbGenerateCSVHandler":			UcbHandler.UcbGenerateCSVHandler{},
+	"UcbDownLoadFileHandler":			UcbHandler.UcbDownLoadFileHandler{},
 }
 var NTM_MIDDLEWARE_FACTORY = map[string]interface{}{
 	"UcbCheckTokenMiddleware": UcbMiddleware.UcbCheckTokenMiddleware{},

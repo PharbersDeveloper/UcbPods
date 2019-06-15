@@ -8,13 +8,11 @@ import (
 	"github.com/alfredyang1986/BmServiceDef/BmDaemons"
 	"github.com/alfredyang1986/BmServiceDef/BmDaemons/BmMongodb"
 	"github.com/alfredyang1986/BmServiceDef/BmDaemons/BmRedis"
-	"github.com/alfredyang1986/blackmirror/bmkafka"
 	"github.com/julienschmidt/httprouter"
 	"github.com/manyminds/api2go"
 	"github.com/mitchellh/mapstructure"
 	"io/ioutil"
 	"net/http"
-	"os"
 	"reflect"
 	"time"
 )
@@ -361,14 +359,17 @@ func (h UcbCallRHandler) CallRCalculate(w http.ResponseWriter, r *http.Request, 
 
 	fmt.Println(string(c))
 
-	env := os.Getenv("BM_KAFKA_CONF_HOME") + "/resource/kafkaconfig.json"
-	os.Setenv("BM_KAFKA_CONF_HOME", env)
-	kafka, err := bmkafka.GetConfigInstance()
-	if err != nil {
-		panic(err)
-	}
-	topic := kafka.Topics[0]
-	kafka.Produce(&topic, c)
+	//env := os.Getenv("BM_KAFKA_CONF_HOME") + "/resource/kafkaconfig.json"
+	//os.Setenv("BM_KAFKA_CONF_HOME", env)
+	//kafka, err := bmkafka.GetConfigInstance()
+	//if err != nil {
+	//	panic(err)
+	//}
+	//topic := kafka.Topics[0]
+	//kafka.Produce(&topic, c)
+	result["status"] = "ok"
+	result["msg"] = "正在计算"
+	enc.Encode(result)
 	return 0
 }
 
