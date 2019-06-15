@@ -188,7 +188,10 @@ func (h UcbGenerateCSVHandler) businessOut(proposalId, accountId, scenarioId str
 	//inputHeader := []string {"时间", "城市名称", "医院名称", "医院等级", "负责代表", "产品", "进药状态", "患者数量", "指标", "预算"}
 	reportHeader := []string {"时间", "城市名称", "医院名称", "医院等级", "负责代表", "产品", "进药状态", "患者数量", "指标达成率", "销量"}
 
-	var reportBody [][]string
+	var (
+		//inputBody [][]string
+		reportBody [][]string
+	)
 
 	// 最新的paper
 	papers := paperStorage.GetAll(req, -1, -1)
@@ -204,9 +207,28 @@ func (h UcbGenerateCSVHandler) businessOut(proposalId, accountId, scenarioId str
 		req.QueryParams["notEq[destConfigId]"] = []string{"-1"}
 		hospitalSalesReports := hospitalSalesReportStorage.GetAll(req, -1, -1)
 		if len(salesReport.PaperInputID) > 0 {
-
+			//var content []string
+			//paperInputStorage.GetAll()
+			//for _, hospitalSalesReport :=  range hospitalSalesReports {
+			//	destConfig, _ := destConfigStorage.GetOne(hospitalSalesReport.DestConfigID)
+			//	hospitalConfig, _ := hospitalConfigStorage.GetOne(destConfig.DestID)
+			//	city, _ := cityStorage.GetOne(hospitalConfig.CityID)
+			//	hospital, _ := hospitalStorage.GetOne(hospitalConfig.HospitalID)
+			//	resourceConfig, _ := resourceConfigStorage.GetOne(hospitalSalesReport.ResourceConfigID)
+			//	repConfig, _ := representativeConfigStorage.GetOne(resourceConfig.ResourceID)
+			//	rep, _ := representativeStorage.GetOne(repConfig.RepresentativeID)
+			//	goodsConfig, _ := goodsConfigStorage.GetOne(hospitalSalesReport.GoodsConfigID)
+			//	productConfig, _ := productConfigStorage.GetOne(goodsConfig.GoodsID)
+			//	product, _ := productStorage.GetOne(productConfig.ProductID)
+			//	reportContent = []string{scenario.Name, city.Name, hospital.Name, hospital.HospitalLevel,
+			//		rep.Name, product.Name, hospitalSalesReport.DrugEntranceInfo,
+			//		strconv.Itoa(hospitalSalesReport.PatientCount),
+			//		strconv.FormatFloat(hospitalSalesReport.QuotaAchievement, 'f', -1, 32),
+			//		strconv.FormatFloat(hospitalSalesReport.Sales,'f', -1, 32)}
+			//	reportBody = append(reportBody, reportContent)
+			//}
 		} else {
-			var reportContent []string
+			var content []string
 			for _, hospitalSalesReport :=  range hospitalSalesReports {
 				destConfig, _ := destConfigStorage.GetOne(hospitalSalesReport.DestConfigID)
 				hospitalConfig, _ := hospitalConfigStorage.GetOne(destConfig.DestID)
@@ -218,11 +240,13 @@ func (h UcbGenerateCSVHandler) businessOut(proposalId, accountId, scenarioId str
 				goodsConfig, _ := goodsConfigStorage.GetOne(hospitalSalesReport.GoodsConfigID)
 				productConfig, _ := productConfigStorage.GetOne(goodsConfig.GoodsID)
 				product, _ := productStorage.GetOne(productConfig.ProductID)
-				reportContent = append(reportContent, scenario.Name, city.Name, hospital.Name, hospital.HospitalLevel,
-					rep.Name, product.Name, hospitalSalesReport.DrugEntranceInfo, strconv.Itoa(hospitalSalesReport.PatientCount),
-					strconv.FormatFloat(hospitalSalesReport.QuotaAchievement, 'f', -1, 32), strconv.FormatFloat(hospitalSalesReport.Sales,'f', -1, 32))
+				content = []string{scenario.Name, city.Name, hospital.Name, hospital.HospitalLevel,
+					rep.Name, product.Name, hospitalSalesReport.DrugEntranceInfo,
+					strconv.Itoa(hospitalSalesReport.PatientCount),
+					strconv.FormatFloat(hospitalSalesReport.QuotaAchievement, 'f', -1, 32),
+					strconv.FormatFloat(hospitalSalesReport.Sales,'f', -1, 32)}
+				reportBody = append(reportBody, content)
 			}
-			reportBody = append(reportBody, reportContent)
 		}
 	}
 
@@ -297,8 +321,6 @@ func (h UcbGenerateCSVHandler) businessOut(proposalId, accountId, scenarioId str
 	//
 	//
 	//}
-
-
 
 	return map[string]interface{}{
 		"report": map[string]interface{}{
