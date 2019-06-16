@@ -15,7 +15,6 @@ import (
 	"github.com/mitchellh/mapstructure"
 	"io/ioutil"
 	"net/http"
-	"os"
 	"reflect"
 	"time"
 )
@@ -87,8 +86,8 @@ func (h UcbCallRHandler) NewCallRHandler(args ...interface{}) UcbCallRHandler {
 		}
 	}
 	go func() {
-		env := os.Getenv("BM_KAFKA_CONF_HOME") + "/resource/kafkaconfig.json"
-		os.Setenv("BM_KAFKA_CONF_HOME", env)
+		//env := os.Getenv("BM_KAFKA_CONF_HOME") + "/resource/kafkaconfig.json"
+		//os.Setenv("BM_KAFKA_CONF_HOME", env)
 		kafka, _ := bmkafka.GetConfigInstance()
 		topic := kafka.Topics[len(kafka.Topics) -1:]
 		kafka.SubscribeTopics(topic, subscriptionFunc)
@@ -367,8 +366,8 @@ func (h UcbCallRHandler) CallRCalculate(w http.ResponseWriter, r *http.Request, 
 
 	fmt.Println(string(c))
 
-	env := os.Getenv("BM_KAFKA_CONF_HOME") + "/resource/kafkaconfig.json"
-	os.Setenv("BM_KAFKA_CONF_HOME", env)
+	//env := os.Getenv("BM_KAFKA_CONF_HOME") + "/resource/kafkaconfig.json"
+	//os.Setenv("BM_KAFKA_CONF_HOME", env)
 	kafka, err := bmkafka.GetConfigInstance()
 	if err != nil {
 		panic(err)

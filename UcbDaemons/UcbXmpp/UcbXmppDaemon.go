@@ -2,7 +2,6 @@ package UcbXmpp
 
 import (
 	"github.com/alfredyang1986/blackmirror/bmxmpp"
-	"os"
 )
 
 type UcbXmpp struct {
@@ -11,8 +10,8 @@ type UcbXmpp struct {
 }
 
 func (r UcbXmpp) NewUcbXmppBDaemon(args map[string]string) *UcbXmpp {
-	env := os.Getenv("BM_XMPP_CONF_HOME") + "/resource/xmppconfig.json"
-	os.Setenv("BM_XMPP_CONF_HOME", env)
+	//env := os.Getenv("BM_XMPP_CONF_HOME") + "/resource/xmppconfig.json"
+	//os.Setenv("BM_XMPP_CONF_HOME", env)
 	bxc, _ := bmxmpp.GetConfigInstance()
 	ins := UcbXmpp {
 		//GroupRoomID: args["room"],

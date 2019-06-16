@@ -16,12 +16,14 @@ LABEL UcbPods.version="0.0.18" maintainer="Alex"
 # 下载kafka
 RUN git clone https://github.com/edenhill/librdkafka.git $GOPATH/librdkafka
 
-WORKDIR /go/kafka/secrets
+#WORKDIR /go/kafka/secrets
 
 WORKDIR $GOPATH/librdkafka
 RUN ./configure --prefix /usr  && \
 make && \
 make install
+
+#RUN mkdir -p /go/kafka/secrets
 
 # 下载依赖
 RUN git clone https://github.com/go-yaml/yaml $GOPATH/src/gopkg.in/yaml.v2 && \
@@ -34,8 +36,8 @@ RUN git clone https://github.com/go-yaml/yaml $GOPATH/src/gopkg.in/yaml.v2 && \
 
 # 设置工程配置文件的环境变量
 ENV UCB_HOME $GOPATH/src/github.com/PharbersDeveloper/UcbServiceDeploy/deploy-config
-ENV BM_KAFKA_CONF_HOME $GOPATH/src/github.com/PharbersDeveloper/UcbServiceDeploy/deploy-config
-ENV BM_XMPP_CONF_HOME $GOPATH/src/github.com/PharbersDeveloper/UcbServiceDeploy/deploy-config
+ENV BM_KAFKA_CONF_HOME $GOPATH/src/github.com/PharbersDeveloper/UcbServiceDeploy/deploy-config/resource/kafkaconfig.json
+ENV BM_XMPP_CONF_HOME $GOPATH/src/github.com/PharbersDeveloper/UcbServiceDeploy/deploy-config/resource/xmppconfig.json
 ENV GO111MODULE on
 
 # 构建可执行文件
