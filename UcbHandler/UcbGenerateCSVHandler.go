@@ -110,45 +110,38 @@ func (h UcbGenerateCSVHandler) GenerateCSV(w http.ResponseWriter, r *http.Reques
 	}
 
 	var (
-		header []string
-		body [][]string
 		resultMap map[string]interface{}
 	)
 
 	if downloadType == "business" {
-		resultMap = h.businessOut(proposalId, accountId, scenarioId, req)
+		resultMap = h.csvDataOut(proposalId, accountId, scenarioId, req)
+		businessInput := resultMap["input"].(map[string]interface{})
+		businessInputHeader := businessInput["header"].([]string)
+		businessInputBody := businessInput["body"].([][]string)
+
+		businessReport := resultMap["report"].(map[string]interface{})
+		businessReportHeader := businessReport["header"].([]string)
+		businessReportBody := businessReport["body"].([][]string)
+
+		var uid uuid.UUID
+		uid, _ = uuid.NewRandom()
+		inputFileName := fmt.Sprint(uid.String(), "-输入", ".csv")
+		uid, _ = uuid.NewRandom()
+		reportFileName := fmt.Sprint(uid.String(), "—销售报告", ".csv")
+
+		_ = generateCsvFile(inputFileName, businessInputHeader, businessInputBody)
+		_ = generateCsvFile(reportFileName, businessReportHeader, businessReportBody)
+
+		fileNames := []string{inputFileName, reportFileName}
+
+		result["status"] = "ok"
+		result["fileNames"] = fileNames
+		enc.Encode(result)
 	} else if downloadType == "assessment" {
-		header, body = h.assessmentOut(proposalId, accountId, scenarioId)
+		resultMap = h.csvDataOut(proposalId, accountId, scenarioId, req)
 	}
 
-	fmt.Println(header)
-	fmt.Println(body)
-	fmt.Println(resultMap)
 
-	businessReport := resultMap["report"].(map[string]interface{})
-	businessReportHeader := businessReport["header"].([]string)
-	businessReportBody := businessReport["body"].([][]string)
-
-
-
-	//content := []string{"Alex", "18510971868"}
-	//header = []string{"姓名", "电话"}
-	//body = [][]string{content}
-	//
-	var uid uuid.UUID
-	uid, _ = uuid.NewRandom()
-	//inputFileName := fmt.Sprint(uid.String(), ".csv")
-	uid, _ = uuid.NewRandom()
-	reportFileName := fmt.Sprint(uid.String(), ".csv")
-	//
-	//_ = generateCsvFile(inputFileName, header, body)
-	_ = generateCsvFile(reportFileName, businessReportHeader, businessReportBody)
-	//
-	//fileNames := []string{inputFileName, reportFileName}
-	//
-	//result["status"] = "ok"
-	//result["fileNames"] = fileNames
-	//enc.Encode(result)
 	return 0
 }
 
@@ -160,12 +153,12 @@ func (h UcbGenerateCSVHandler) GetHandlerMethod() string {
 	return h.Method
 }
 
-func (h UcbGenerateCSVHandler) businessOut(proposalId, accountId, scenarioId string, req api2go.Request) map[string]interface{} {
+func (h UcbGenerateCSVHandler) csvDataOut(proposalId, accountId, scenarioId string, req api2go.Request) map[string]interface{} {
 	mdb := []BmDaemons.BmDaemon{h.db}
 	scenarioStorage := UcbDataStorage.UcbScenarioStorage{}.NewScenarioStorage(mdb)
 	paperStorage := UcbDataStorage.UcbPaperStorage{}.NewPaperStorage(mdb)
-	//paperInputStorage := UcbDataStorage.UcbPaperinputStorage{}.NewPaperinputStorage(mdb)
-	//businessInputStorage := UcbDataStorage.UcbBusinessinputStorage{}.NewBusinessinputStorage(mdb)
+	paperInputStorage := UcbDataStorage.UcbPaperinputStorage{}.NewPaperinputStorage(mdb)
+	businessInputStorage := UcbDataStorage.UcbBusinessinputStorage{}.NewBusinessinputStorage(mdb)
 	destConfigStorage := UcbDataStorage.UcbDestConfigStorage{}.NewDestConfigStorage(mdb)
 	hospitalConfigStorage := UcbDataStorage.UcbHospitalConfigStorage{}.NewHospitalConfigStorage(mdb)
 	cityStorage := UcbDataStorage.UcbCityStorage{}.NewCityStorage(mdb)
@@ -173,7 +166,7 @@ func (h UcbGenerateCSVHandler) businessOut(proposalId, accountId, scenarioId str
 	resourceConfigStorage := UcbDataStorage.UcbResourceConfigStorage{}.NewResourceConfigStorage(mdb)
 	representativeConfigStorage := UcbDataStorage.UcbRepresentativeConfigStorage{}.NewRepresentativeConfigStorage(mdb)
 	representativeStorage := UcbDataStorage.UcbRepresentativeStorage{}.NewRepresentativeStorage(mdb)
-	//goodsInputStorage := UcbDataStorage.UcbGoodsinputStorage{}.NewGoodsinputStorage(mdb)
+	goodsInputStorage := UcbDataStorage.UcbGoodsinputStorage{}.NewGoodsinputStorage(mdb)
 	goodsConfigStorage := UcbDataStorage.UcbGoodsConfigStorage{}.NewGoodsConfigStorage(mdb)
 	productConfigStorage := UcbDataStorage.UcbProductConfigStorage{}.NewProductConfigStorage(mdb)
 	productStorage := UcbDataStorage.UcbProductStorage{}.NewProductStorage(mdb)
@@ -185,11 +178,11 @@ func (h UcbGenerateCSVHandler) businessOut(proposalId, accountId, scenarioId str
 	req.QueryParams["proposal-id"] = []string{proposalId}
 	req.QueryParams["orderby"] = []string{"time"}
 
-	//inputHeader := []string {"时间", "城市名称", "医院名称", "医院等级", "负责代表", "产品", "进药状态", "患者数量", "指标", "预算"}
+	inputHeader := []string {"时间", "城市名称", "医院名称", "医院等级", "负责代表", "产品", "进药状态", "患者数量", "指标", "预算"}
 	reportHeader := []string {"时间", "城市名称", "医院名称", "医院等级", "负责代表", "产品", "进药状态", "患者数量", "指标达成率", "销量"}
 
 	var (
-		//inputBody [][]string
+		inputBody [][]string
 		reportBody [][]string
 	)
 
@@ -207,28 +200,38 @@ func (h UcbGenerateCSVHandler) businessOut(proposalId, accountId, scenarioId str
 		req.QueryParams["notEq[destConfigId]"] = []string{"-1"}
 		hospitalSalesReports := hospitalSalesReportStorage.GetAll(req, -1, -1)
 		if len(salesReport.PaperInputID) > 0 {
-			//var content []string
-			//paperInputStorage.GetAll()
-			//for _, hospitalSalesReport :=  range hospitalSalesReports {
-			//	destConfig, _ := destConfigStorage.GetOne(hospitalSalesReport.DestConfigID)
-			//	hospitalConfig, _ := hospitalConfigStorage.GetOne(destConfig.DestID)
-			//	city, _ := cityStorage.GetOne(hospitalConfig.CityID)
-			//	hospital, _ := hospitalStorage.GetOne(hospitalConfig.HospitalID)
-			//	resourceConfig, _ := resourceConfigStorage.GetOne(hospitalSalesReport.ResourceConfigID)
-			//	repConfig, _ := representativeConfigStorage.GetOne(resourceConfig.ResourceID)
-			//	rep, _ := representativeStorage.GetOne(repConfig.RepresentativeID)
-			//	goodsConfig, _ := goodsConfigStorage.GetOne(hospitalSalesReport.GoodsConfigID)
-			//	productConfig, _ := productConfigStorage.GetOne(goodsConfig.GoodsID)
-			//	product, _ := productStorage.GetOne(productConfig.ProductID)
-			//	reportContent = []string{scenario.Name, city.Name, hospital.Name, hospital.HospitalLevel,
-			//		rep.Name, product.Name, hospitalSalesReport.DrugEntranceInfo,
-			//		strconv.Itoa(hospitalSalesReport.PatientCount),
-			//		strconv.FormatFloat(hospitalSalesReport.QuotaAchievement, 'f', -1, 32),
-			//		strconv.FormatFloat(hospitalSalesReport.Sales,'f', -1, 32)}
-			//	reportBody = append(reportBody, reportContent)
-			//}
+			paperInput, _ := paperInputStorage.GetOne(salesReport.PaperInputID)
+
+			req.QueryParams["ids"] = paperInput.BusinessinputIDs
+			businessInputs := businessInputStorage.GetAll(req, -1, -1)
+			for _, businessInput := range businessInputs {
+				for _, hospitalSalesReport := range hospitalSalesReports {
+					if hospitalSalesReport.DestConfigID == businessInput.DestConfigId {
+						destConfig, _ := destConfigStorage.GetOne(businessInput.DestConfigId)
+						hospitalConfig, _ := hospitalConfigStorage.GetOne(destConfig.DestID)
+						city, _ := cityStorage.GetOne(hospitalConfig.CityID)
+						hospital, _ := hospitalStorage.GetOne(hospitalConfig.HospitalID)
+						resourceConfig, _ := resourceConfigStorage.GetOne(businessInput.ResourceConfigId)
+						repConfig, _ := representativeConfigStorage.GetOne(resourceConfig.ResourceID)
+						rep, _ := representativeStorage.GetOne(repConfig.RepresentativeID)
+
+						for _, goodsInput := range goodsInputStorage.GetAll(req, -1, -1) {
+							goodsConfig, _ := goodsConfigStorage.GetOne(goodsInput.GoodsConfigId)
+							productConfig, _ := productConfigStorage.GetOne(goodsConfig.GoodsID)
+							product, _ := productStorage.GetOne(productConfig.ProductID)
+
+							content := []string{scenario.Name, city.Name, hospital.Name, hospital.HospitalLevel,
+								rep.Name, product.Name, hospitalSalesReport.DrugEntranceInfo,
+								strconv.Itoa(hospitalSalesReport.PatientCount),
+								strconv.FormatFloat(goodsInput.Budget, 'f', -1, 32),
+								strconv.FormatFloat(goodsInput.SalesTarget,'f', -1, 32)}
+							inputBody = append(inputBody, content)
+
+						}
+					}
+				}
+			}
 		} else {
-			var content []string
 			for _, hospitalSalesReport :=  range hospitalSalesReports {
 				destConfig, _ := destConfigStorage.GetOne(hospitalSalesReport.DestConfigID)
 				hospitalConfig, _ := hospitalConfigStorage.GetOne(destConfig.DestID)
@@ -240,7 +243,7 @@ func (h UcbGenerateCSVHandler) businessOut(proposalId, accountId, scenarioId str
 				goodsConfig, _ := goodsConfigStorage.GetOne(hospitalSalesReport.GoodsConfigID)
 				productConfig, _ := productConfigStorage.GetOne(goodsConfig.GoodsID)
 				product, _ := productStorage.GetOne(productConfig.ProductID)
-				content = []string{scenario.Name, city.Name, hospital.Name, hospital.HospitalLevel,
+				content := []string{scenario.Name, city.Name, hospital.Name, hospital.HospitalLevel,
 					rep.Name, product.Name, hospitalSalesReport.DrugEntranceInfo,
 					strconv.Itoa(hospitalSalesReport.PatientCount),
 					strconv.FormatFloat(hospitalSalesReport.QuotaAchievement, 'f', -1, 32),
@@ -250,79 +253,11 @@ func (h UcbGenerateCSVHandler) businessOut(proposalId, accountId, scenarioId str
 		}
 	}
 
-
-	//inputIds := paper.InputIDs[0:]
-	//
-	//req.QueryParams["ids"] = inputIds
-
-	//for _, paperInput := range paperInputStorage.GetAll(req, -1, -1) {
-	//	var paperInputs []map[string]interface{}
-	//
-	//	scenario, _ := scenarioStorage.GetOne(paperInput.ScenarioID)
-	//	header = append(header, fmt.Sprint(scenario.Name, "指标"))
-	//	header = append(header, fmt.Sprint(scenario.Name, "预算"))
-	//
-	//	req.QueryParams["ids"] = paperInput.BusinessinputIDs
-	//	businessInputs := businessInputStorage.GetAll(req, -1,-1)
-	//
-	//	cleanQueryParams(&req)
-	//
-	//
-	//
-	//	//req.QueryParams["paperInput-id"] = []string{paperInput.ID}
-	//	//salesReport := salesReportStorage.GetAll(req, -1,-1)[0]
-	//	//
-	//	//cleanQueryParams(&req)
-	//	//req.QueryParams["ids"] = salesReport.HospitalSalesReportIDs
-	//	//
-	//	//hospitalSalesReports := hospitalSalesReportStorage.GetAll(req, -1, -1)
-	//
-	//	for _, businessInput := range businessInputs {
-	//		for _, hospitalSalesReport := range hospitalSalesReports {
-	//			if businessInput.DestConfigId == hospitalSalesReport.DestConfigID {
-	//				cleanQueryParams(&req)
-	//
-	//				destConfig, _ := destConfigStorage.GetOne(businessInput.DestConfigId)
-	//				hospitalConfig, _ := hospitalConfigStorage.GetOne(destConfig.DestID)
-	//				city, _ := cityStorage.GetOne(hospitalConfig.CityID)
-	//				hospital, _ := hospitalStorage.GetOne(hospitalConfig.HospitalID)
-	//				resourceConfig, _ := resourceConfigStorage.GetOne(businessInput.ResourceConfigId)
-	//				repConfig, _ := representativeConfigStorage.GetOne(resourceConfig.ResourceID)
-	//				rep, _ := representativeStorage.GetOne(repConfig.RepresentativeID)
-	//
-	//				req.QueryParams["ids"] = businessInput.GoodsInputIds
-	//
-	//				for _, goodsInput := range goodsInputStorage.GetAll(req, -1, -1) {
-	//					goodsConfig, _ := goodsConfigStorage.GetOne(goodsInput.GoodsConfigId)
-	//					productConfig, _ := productConfigStorage.GetOne(goodsConfig.GoodsID)
-	//					product, _ := productStorage.GetOne(productConfig.ProductID)
-	//
-	//					paperInputs = append(paperInputs, map[string]interface{}{
-	//						"cityName": city.Name,
-	//						"hospitalName": hospital.Name,
-	//						"hospitalLevel": hospital.HospitalLevel,
-	//						"reqName":	rep.Name,
-	//						"productName": product.Name,
-	//						"drugEntranceInfo": hospitalSalesReport.DrugEntranceInfo,
-	//						"patientCount": hospitalSalesReport.PatientCount,
-	//					})
-	//
-	//				}
-	//
-	//
-	//			}
-	//		}
-	//
-	//		//destIds = append(destIds, businessInput.ID)
-	//	}
-	//
-	//	//req.QueryParams["ids"] = destIds
-	//
-	//
-	//
-	//}
-
 	return map[string]interface{}{
+		"input": map[string]interface{}{
+			"header": inputHeader,
+			"body": inputBody,
+		},
 		"report": map[string]interface{}{
 			"header": reportHeader,
 			"body": reportBody,
@@ -331,14 +266,117 @@ func (h UcbGenerateCSVHandler) businessOut(proposalId, accountId, scenarioId str
 
 }
 
-func (h UcbGenerateCSVHandler) assessmentOut(proposalId, accountId, scenarioId string) ([]string, [][]string) {
-	var (
-		header []string
-		body [][]string
-	)
-
-	return header, body
-}
+//func (h UcbGenerateCSVHandler) assessmentOut(proposalId, accountId, scenarioId string, req api2go.Request) map[string]interface{} {
+//	mdb := []BmDaemons.BmDaemon{h.db}
+//	scenarioStorage := UcbDataStorage.UcbScenarioStorage{}.NewScenarioStorage(mdb)
+//	paperStorage := UcbDataStorage.UcbPaperStorage{}.NewPaperStorage(mdb)
+//	paperInputStorage := UcbDataStorage.UcbPaperinputStorage{}.NewPaperinputStorage(mdb)
+//	businessInputStorage := UcbDataStorage.UcbBusinessinputStorage{}.NewBusinessinputStorage(mdb)
+//	destConfigStorage := UcbDataStorage.UcbDestConfigStorage{}.NewDestConfigStorage(mdb)
+//	hospitalConfigStorage := UcbDataStorage.UcbHospitalConfigStorage{}.NewHospitalConfigStorage(mdb)
+//	cityStorage := UcbDataStorage.UcbCityStorage{}.NewCityStorage(mdb)
+//	hospitalStorage := UcbDataStorage.UcbHospitalStorage{}.NewHospitalStorage(mdb)
+//	resourceConfigStorage := UcbDataStorage.UcbResourceConfigStorage{}.NewResourceConfigStorage(mdb)
+//	representativeConfigStorage := UcbDataStorage.UcbRepresentativeConfigStorage{}.NewRepresentativeConfigStorage(mdb)
+//	representativeStorage := UcbDataStorage.UcbRepresentativeStorage{}.NewRepresentativeStorage(mdb)
+//	goodsInputStorage := UcbDataStorage.UcbGoodsinputStorage{}.NewGoodsinputStorage(mdb)
+//	goodsConfigStorage := UcbDataStorage.UcbGoodsConfigStorage{}.NewGoodsConfigStorage(mdb)
+//	productConfigStorage := UcbDataStorage.UcbProductConfigStorage{}.NewProductConfigStorage(mdb)
+//	productStorage := UcbDataStorage.UcbProductStorage{}.NewProductStorage(mdb)
+//
+//	salesReportStorage := UcbDataStorage.UcbSalesReportStorage{}.NewSalesReportStorage(mdb)
+//	hospitalSalesReportStorage := UcbDataStorage.UcbHospitalSalesReportStorage{}.NewHospitalSalesReportStorage(mdb)
+//
+//	req.QueryParams["account-id"] = []string{accountId}
+//	req.QueryParams["proposal-id"] = []string{proposalId}
+//	req.QueryParams["orderby"] = []string{"time"}
+//
+//	inputHeader := []string {"时间", "城市名称", "医院名称", "医院等级", "负责代表", "产品", "进药状态", "患者数量", "指标", "预算"}
+//	reportHeader := []string {"时间", "城市名称", "医院名称", "医院等级", "负责代表", "产品", "进药状态", "患者数量", "指标达成率", "销量"}
+//
+//	var (
+//		inputBody [][]string
+//		reportBody [][]string
+//	)
+//
+//	// 最新的paper
+//	papers := paperStorage.GetAll(req, -1, -1)
+//	paper := papers[len(papers) - 1]
+//
+//	req.QueryParams["ids"] = paper.SalesReportIDs
+//	salesReports := salesReportStorage.GetAll(req, -1, -1)
+//
+//	for _, salesReport := range salesReports {
+//		scenario, _ := scenarioStorage.GetOne(salesReport.ScenarioID)
+//
+//		req.QueryParams["ids"] = salesReport.HospitalSalesReportIDs
+//		req.QueryParams["notEq[destConfigId]"] = []string{"-1"}
+//		hospitalSalesReports := hospitalSalesReportStorage.GetAll(req, -1, -1)
+//		if len(salesReport.PaperInputID) > 0 {
+//			paperInput, _ := paperInputStorage.GetOne(salesReport.PaperInputID)
+//
+//			req.QueryParams["ids"] = paperInput.BusinessinputIDs
+//			businessInputs := businessInputStorage.GetAll(req, -1, -1)
+//			for _, businessInput := range businessInputs {
+//				for _, hospitalSalesReport := range hospitalSalesReports {
+//					if hospitalSalesReport.DestConfigID == businessInput.DestConfigId {
+//						destConfig, _ := destConfigStorage.GetOne(businessInput.DestConfigId)
+//						hospitalConfig, _ := hospitalConfigStorage.GetOne(destConfig.DestID)
+//						city, _ := cityStorage.GetOne(hospitalConfig.CityID)
+//						hospital, _ := hospitalStorage.GetOne(hospitalConfig.HospitalID)
+//						resourceConfig, _ := resourceConfigStorage.GetOne(businessInput.ResourceConfigId)
+//						repConfig, _ := representativeConfigStorage.GetOne(resourceConfig.ResourceID)
+//						rep, _ := representativeStorage.GetOne(repConfig.RepresentativeID)
+//
+//						for _, goodsInput := range goodsInputStorage.GetAll(req, -1, -1) {
+//							goodsConfig, _ := goodsConfigStorage.GetOne(goodsInput.GoodsConfigId)
+//							productConfig, _ := productConfigStorage.GetOne(goodsConfig.GoodsID)
+//							product, _ := productStorage.GetOne(productConfig.ProductID)
+//
+//							content := []string{scenario.Name, city.Name, hospital.Name, hospital.HospitalLevel,
+//								rep.Name, product.Name, hospitalSalesReport.DrugEntranceInfo,
+//								strconv.Itoa(hospitalSalesReport.PatientCount),
+//								strconv.FormatFloat(goodsInput.Budget, 'f', -1, 32),
+//								strconv.FormatFloat(goodsInput.SalesTarget,'f', -1, 32)}
+//							inputBody = append(inputBody, content)
+//
+//						}
+//					}
+//				}
+//			}
+//		} else {
+//			for _, hospitalSalesReport :=  range hospitalSalesReports {
+//				destConfig, _ := destConfigStorage.GetOne(hospitalSalesReport.DestConfigID)
+//				hospitalConfig, _ := hospitalConfigStorage.GetOne(destConfig.DestID)
+//				city, _ := cityStorage.GetOne(hospitalConfig.CityID)
+//				hospital, _ := hospitalStorage.GetOne(hospitalConfig.HospitalID)
+//				resourceConfig, _ := resourceConfigStorage.GetOne(hospitalSalesReport.ResourceConfigID)
+//				repConfig, _ := representativeConfigStorage.GetOne(resourceConfig.ResourceID)
+//				rep, _ := representativeStorage.GetOne(repConfig.RepresentativeID)
+//				goodsConfig, _ := goodsConfigStorage.GetOne(hospitalSalesReport.GoodsConfigID)
+//				productConfig, _ := productConfigStorage.GetOne(goodsConfig.GoodsID)
+//				product, _ := productStorage.GetOne(productConfig.ProductID)
+//				content := []string{scenario.Name, city.Name, hospital.Name, hospital.HospitalLevel,
+//					rep.Name, product.Name, hospitalSalesReport.DrugEntranceInfo,
+//					strconv.Itoa(hospitalSalesReport.PatientCount),
+//					strconv.FormatFloat(hospitalSalesReport.QuotaAchievement, 'f', -1, 32),
+//					strconv.FormatFloat(hospitalSalesReport.Sales,'f', -1, 32)}
+//				reportBody = append(reportBody, content)
+//			}
+//		}
+//	}
+//
+//	return map[string]interface{}{
+//		"input": map[string]interface{}{
+//			"header": inputHeader,
+//			"body": inputBody,
+//		},
+//		"report": map[string]interface{}{
+//			"header": reportHeader,
+//			"body": reportBody,
+//		},
+//	}
+//}
 
 func generateCsvFile (fileName string, header []string, body [][]string) error {
 	data := [][]string{

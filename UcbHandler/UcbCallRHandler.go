@@ -1,6 +1,7 @@
 package UcbHandler
 
 import (
+	"Ucb/UcbDaemons/UcbXmpp"
 	"Ucb/UcbDataStorage"
 	"Ucb/UcbModel"
 	"encoding/json"
@@ -8,11 +9,13 @@ import (
 	"github.com/alfredyang1986/BmServiceDef/BmDaemons"
 	"github.com/alfredyang1986/BmServiceDef/BmDaemons/BmMongodb"
 	"github.com/alfredyang1986/BmServiceDef/BmDaemons/BmRedis"
+	"github.com/alfredyang1986/blackmirror/bmkafka"
 	"github.com/julienschmidt/httprouter"
 	"github.com/manyminds/api2go"
 	"github.com/mitchellh/mapstructure"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"reflect"
 	"time"
 )
@@ -25,6 +28,7 @@ type UcbCallRHandler struct {
 	Args       []string
 	db         *BmMongodb.BmMongodb
 	rd         *BmRedis.BmRedis
+	xmpp	   *UcbXmpp.UcbXmpp
 }
 
 type calcStruct struct {
@@ -50,6 +54,7 @@ type resultStruct struct {
 func (h UcbCallRHandler) NewCallRHandler(args ...interface{}) UcbCallRHandler {
 	var m *BmMongodb.BmMongodb
 	var r *BmRedis.BmRedis
+	var x *UcbXmpp.UcbXmpp
 	var hm string
 	var md string
 	var ag []string
@@ -65,6 +70,9 @@ func (h UcbCallRHandler) NewCallRHandler(args ...interface{}) UcbCallRHandler {
 				if tm.Name() == "BmRedis" {
 					r = dm.(*BmRedis.BmRedis)
 				}
+				if tm.Name() == "UcbXmpp" {
+					x = dm.(*UcbXmpp.UcbXmpp)
+				}
 			}
 		} else if i == 1 {
 			md = arg.(string)
@@ -78,14 +86,14 @@ func (h UcbCallRHandler) NewCallRHandler(args ...interface{}) UcbCallRHandler {
 		} else {
 		}
 	}
-	//go func() {
-	//	env := os.Getenv("BM_KAFKA_CONF_HOME") + "/resource/kafkaconfig.json"
-	//	os.Setenv("BM_KAFKA_CONF_HOME", env)
-	//	kafka, _ := bmkafka.GetConfigInstance()
-	//	topic := kafka.Topics[len(kafka.Topics) -1:]
-	//	kafka.SubscribeTopics(topic, subscriptionFunc)
-	//}()
-	UcbCallR = UcbCallRHandler{Method: md, HttpMethod: hm, Args: ag, db: m, rd: r }
+	go func() {
+		env := os.Getenv("BM_KAFKA_CONF_HOME") + "/resource/kafkaconfig.json"
+		os.Setenv("BM_KAFKA_CONF_HOME", env)
+		kafka, _ := bmkafka.GetConfigInstance()
+		topic := kafka.Topics[len(kafka.Topics) -1:]
+		kafka.SubscribeTopics(topic, subscriptionFunc)
+	}()
+	UcbCallR = UcbCallRHandler{ Method: md, HttpMethod: hm, Args: ag, db: m, rd: r, xmpp: x }
 	return UcbCallR
 }
 
@@ -359,14 +367,15 @@ func (h UcbCallRHandler) CallRCalculate(w http.ResponseWriter, r *http.Request, 
 
 	fmt.Println(string(c))
 
-	//env := os.Getenv("BM_KAFKA_CONF_HOME") + "/resource/kafkaconfig.json"
-	//os.Setenv("BM_KAFKA_CONF_HOME", env)
-	//kafka, err := bmkafka.GetConfigInstance()
-	//if err != nil {
-	//	panic(err)
-	//}
-	//topic := kafka.Topics[0]
-	//kafka.Produce(&topic, c)
+	env := os.Getenv("BM_KAFKA_CONF_HOME") + "/resource/kafkaconfig.json"
+	os.Setenv("BM_KAFKA_CONF_HOME", env)
+	kafka, err := bmkafka.GetConfigInstance()
+	if err != nil {
+		panic(err)
+	}
+	topic := kafka.Topics[0]
+	kafka.Produce(&topic, c)
+
 	result["status"] = "ok"
 	result["msg"] = "正在计算"
 	enc.Encode(result)
@@ -396,8 +405,30 @@ func getApi2goRequest(r *http.Request, header http.Header) api2go.Request{
 func subscriptionFunc(content interface{}) {
 
 	h := UcbCallR
-
 	c := content.([]byte)
+
+	var result resultStruct
+
+	err := json.Unmarshal(c, &result)
+
+	ctx := map[string]string {
+		"client-id": "5cbe7ab8f4ce4352ecb082a3",
+		"account-id": result.Account,
+		"proposal-id": result.Proposal,
+		"paperInput-id": result.PaperInput,
+		"scenario-id": result.Scenario,
+	}
+
+	if err != nil ||  result.Error != nil{
+		//panic("计算失败")
+		ctx["status"] = "no"
+		ctx["msg"] = "计算失败"
+		r, _ := json.Marshal(ctx)
+		fmt.Println(string(r))
+		_ = h.xmpp.SendGroupMsg(h.Args[0], string(r))
+		return
+	}
+
 	fmt.Println(string(c))
 	if len(c) > 2 {
 		var (
@@ -415,7 +446,6 @@ func subscriptionFunc(content interface{}) {
 			scenarioResultIDs []string
 
 			assessmentReportID string
-
 		)
 
 
@@ -446,13 +476,8 @@ func subscriptionFunc(content interface{}) {
 			QueryParams: map[string][]string{},
 		}
 
-
 		papers := paperStorage.GetAll(req, -1, -1)
 		paper := papers[len(papers) - 1]
-
-
-
-
 
 		body := result.Body
 
@@ -544,4 +569,11 @@ func subscriptionFunc(content interface{}) {
 			panic("更新Paper失败")
 		}
 	}
+
+	ctx["status"] = "ok"
+	ctx["msg"] = "计算成功"
+
+	r, _ := json.Marshal(ctx)
+	fmt.Println(string(r))
+	_ = h.xmpp.SendGroupMsg(h.Args[0], string(r))
 }
