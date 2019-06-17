@@ -129,7 +129,10 @@ func (h UcbGenerateCSVHandler) GenerateCSV(w http.ResponseWriter, r *http.Reques
 		uid, _ = uuid.NewRandom()
 		reportFileName := fmt.Sprint(uid.String(), "—销售报告", ".csv")
 
-		_ = generateCsvFile(inputFileName, businessInputHeader, businessInputBody)
+		err := generateCsvFile(inputFileName, businessInputHeader, businessInputBody)
+		if err != nil {
+			panic(err)
+		}
 		_ = generateCsvFile(reportFileName, businessReportHeader, businessReportBody)
 
 		fileNames := []string{fmt.Sprint(h.Args[1], inputFileName), fmt.Sprint(h.Args[1], reportFileName)}
@@ -410,7 +413,7 @@ func generateCsvFile (fileName string, header []string, body [][]string) error {
 	}
 
 	env := os.Getenv("DOWNLOAD")
-
+	fmt.Println(env)
 	path := fmt.Sprint(env, fileName)
 
 	newFile, err := os.Create(path)

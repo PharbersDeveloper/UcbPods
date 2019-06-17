@@ -8,14 +8,14 @@ RUN apk add --no-cache git gcc musl-dev mercurial bash gcc g++ make pkgconfig op
 
 # 设置工程配置文件的环境变量
 ENV PKG_CONFIG_PATH /usr/lib/pkgconfig
-ENV DOWNLOAD $GOPATH/src/github.com/PharbersDeveloper/UcbServiceDeploy/deploy-config
+ENV DOWNLOAD /go/files
 ENV UCB_HOME $GOPATH/src/github.com/PharbersDeveloper/UcbServiceDeploy/deploy-config
 ENV BM_KAFKA_CONF_HOME $GOPATH/src/github.com/PharbersDeveloper/UcbServiceDeploy/deploy-config/resource/kafkaconfig.json
 ENV BM_XMPP_CONF_HOME $GOPATH/src/github.com/PharbersDeveloper/UcbServiceDeploy/deploy-config/resource/xmppconfig.json
 ENV GO111MODULE on
 
 #LABEL
-LABEL UcbPods.version="0.0.21" maintainer="Alex"
+LABEL UcbPods.version="0.0.19" maintainer="Alex"
 
 # 下载kafka
 RUN git clone https://github.com/edenhill/librdkafka.git $GOPATH/librdkafka
