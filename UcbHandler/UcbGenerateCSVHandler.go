@@ -132,13 +132,36 @@ func (h UcbGenerateCSVHandler) GenerateCSV(w http.ResponseWriter, r *http.Reques
 		_ = generateCsvFile(inputFileName, businessInputHeader, businessInputBody)
 		_ = generateCsvFile(reportFileName, businessReportHeader, businessReportBody)
 
-		fileNames := []string{inputFileName, reportFileName}
+		fileNames := []string{fmt.Sprint(h.Args[1], inputFileName), fmt.Sprint(h.Args[1], reportFileName)}
 
 		result["status"] = "ok"
 		result["fileNames"] = fileNames
 		enc.Encode(result)
 	} else if downloadType == "assessment" {
 		resultMap = h.csvDataOut(proposalId, accountId, scenarioId, req)
+
+		assessmentInput := resultMap["input"].(map[string]interface{})
+		assessmentInputHeader := assessmentInput["header"].([]string)
+		assessmentInputBody := assessmentInput["body"].([][]string)
+
+		assessmentReport := resultMap["report"].(map[string]interface{})
+		assessmentReportHeader := assessmentReport["header"].([]string)
+		assessmentReportBody := assessmentReport["body"].([][]string)
+
+		var uid uuid.UUID
+		uid, _ = uuid.NewRandom()
+		inputFileName := fmt.Sprint(uid.String(), "-输入", ".csv")
+		uid, _ = uuid.NewRandom()
+		reportFileName := fmt.Sprint(uid.String(), "—销售报告", ".csv")
+
+		_ = generateCsvFile(inputFileName, assessmentInputHeader, assessmentInputBody)
+		_ = generateCsvFile(reportFileName, assessmentReportHeader, assessmentReportBody)
+
+		fileNames := []string{fmt.Sprint(h.Args[1], inputFileName), fmt.Sprint(h.Args[1], reportFileName)}
+
+		result["status"] = "ok"
+		result["fileNames"] = fileNames
+		enc.Encode(result)
 	}
 
 
@@ -386,7 +409,9 @@ func generateCsvFile (fileName string, header []string, body [][]string) error {
 		data = append(data, v)
 	}
 
-	path := fmt.Sprint("./files/", fileName)
+	env := os.Getenv("DOWNLOAD")
+
+	path := fmt.Sprint(env, fileName)
 
 	newFile, err := os.Create(path)
 	if err != nil {

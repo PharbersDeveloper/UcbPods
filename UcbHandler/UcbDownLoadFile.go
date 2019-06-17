@@ -8,6 +8,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"reflect"
 )
 
@@ -60,7 +61,8 @@ func (h UcbDownLoadFileHandler) DownLoad(w http.ResponseWriter, r *http.Request,
 
 	if ok {
 		filename := q[0]
-		localFile := "./files/" + filename
+		env := os.Getenv("DOWNLOAD")
+		localFile := fmt.Sprint(env, filename)
 		out, err := ioutil.ReadFile(localFile)
 		if err != nil {
 			fmt.Println("error")

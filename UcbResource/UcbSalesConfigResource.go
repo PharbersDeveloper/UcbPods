@@ -53,10 +53,13 @@ func (c UcbSalesConfigResource) FindAll(r api2go.Request) (api2go.Responder, err
 
 	if acok && psok{
 		result = c.UcbSalesConfigStorage.GetAll(r, -1, -1)
+
+		r.QueryParams["orderby"] = []string{"time"}
 		paperModel := c.UcbPaperStorage.GetAll(r, -1, -1)
 
 
 		if len(paperModel) > 0 {
+			r.QueryParams = map[string][]string{}
 			// 获取这个用户在关卡下最新的报告
 			SalesReportIDs := paperModel[0].SalesReportIDs
 			LastSalesReportID := SalesReportIDs[len(SalesReportIDs)-1]

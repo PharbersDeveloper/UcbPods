@@ -402,6 +402,8 @@ func getApi2goRequest(r *http.Request, header http.Header) api2go.Request{
 }
 
 func subscriptionFunc(content interface{}) {
+	//c := content.([]byte)
+	//fmt.Println(string(c))
 
 	h := UcbCallR
 	c := content.([]byte)
@@ -427,7 +429,6 @@ func subscriptionFunc(content interface{}) {
 		_ = h.xmpp.SendGroupMsg(h.Args[0], string(r))
 		return
 	}
-
 	fmt.Println(string(c))
 	if len(c) > 2 {
 		var (
