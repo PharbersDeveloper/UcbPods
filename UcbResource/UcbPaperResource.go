@@ -450,7 +450,7 @@ func (s UcbPaperResource) representativeSalesReportSummary(r api2go.Request) (ap
 
 		r.QueryParams = map[string][]string{}
 		r.QueryParams["scenario-id"] = []string{salesReportModel.ScenarioID}
-		r.QueryParams["resource-type"] = []string{"1"}
+		r.QueryParams["dest-type"] = []string{"1"}
 
 		destConfigs := s.UcbDestConfigStorage.GetAll(r, -1, -1)
 
