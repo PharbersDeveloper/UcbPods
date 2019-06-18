@@ -125,9 +125,9 @@ func (h UcbGenerateCSVHandler) GenerateCSV(w http.ResponseWriter, r *http.Reques
 
 		var uid uuid.UUID
 		uid, _ = uuid.NewRandom()
-		inputFileName := fmt.Sprint(uid.String(), "-输入", ".csv")
+		inputFileName := fmt.Sprint(uid.String(), "_Input", ".csv")
 		uid, _ = uuid.NewRandom()
-		reportFileName := fmt.Sprint(uid.String(), "—销售报告", ".csv")
+		reportFileName := fmt.Sprint(uid.String(), "_SalesReport", ".csv")
 
 		err := generateCsvFile(inputFileName, businessInputHeader, businessInputBody)
 		if err != nil {
@@ -153,9 +153,9 @@ func (h UcbGenerateCSVHandler) GenerateCSV(w http.ResponseWriter, r *http.Reques
 
 		var uid uuid.UUID
 		uid, _ = uuid.NewRandom()
-		inputFileName := fmt.Sprint(uid.String(), "-输入", ".csv")
+		inputFileName := fmt.Sprint(uid.String(), "_Input", ".csv")
 		uid, _ = uuid.NewRandom()
-		reportFileName := fmt.Sprint(uid.String(), "—销售报告", ".csv")
+		reportFileName := fmt.Sprint(uid.String(), "_SalesReport", ".csv")
 
 		_ = generateCsvFile(inputFileName, assessmentInputHeader, assessmentInputBody)
 		_ = generateCsvFile(reportFileName, assessmentReportHeader, assessmentReportBody)

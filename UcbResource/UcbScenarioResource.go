@@ -77,7 +77,9 @@ func (c UcbScenarioResource) FindAll(r api2go.Request) (api2go.Responder, error)
 	if psok && acok {
 
 		proposalModel, _ := c.UcbProposalStorage.GetOne(proposalsID[0])
-		paperModel := c.UcbPaperStorage.GetAll(r, -1,-1)[0]
+		r.QueryParams["orderby"] = []string{"time"}
+		paperModels := c.UcbPaperStorage.GetAll(r, -1,-1)
+		paperModel := paperModels[len(paperModels) - 1]
 		r.QueryParams["ids"] = paperModel.InputIDs
 		r.QueryParams["orderby"] = []string{"time"}
 		paperInputModel := c.UcbPaperinputStorage.GetAll(r, -1,-1)

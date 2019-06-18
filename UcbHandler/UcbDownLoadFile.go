@@ -70,7 +70,7 @@ func (h UcbDownLoadFileHandler) DownLoad(w http.ResponseWriter, r *http.Request,
 		}
 		w.Header().Set("Content-Disposition", "attachment; filename=" + filename)
 		w.Header().Set("Content-Type", r.Header.Get("Content-Type"))
-		w.Header().Set("charset", "utf-8")
+		//w.Header().Set("charset", "utf-8")
 		w.Write(out)
 	}
 
