@@ -2,8 +2,6 @@ package UcbHandler
 
 import (
 	"Ucb/UcbDaemons/UcbXmpp"
-	"Ucb/UcbDataStorage"
-	"Ucb/UcbModel"
 	"encoding/json"
 	"fmt"
 	"github.com/alfredyang1986/BmServiceDef/BmDaemons"
@@ -11,11 +9,9 @@ import (
 	"github.com/alfredyang1986/BmServiceDef/BmDaemons/BmRedis"
 	"github.com/julienschmidt/httprouter"
 	"github.com/manyminds/api2go"
-	"github.com/mitchellh/mapstructure"
 	"io/ioutil"
 	"net/http"
 	"reflect"
-	"time"
 )
 
 var UcbCallR UcbCallRHandler
@@ -133,7 +129,7 @@ func (h UcbCallRHandler) CallRCalculate(w http.ResponseWriter, r *http.Request, 
 		enc.Encode(result)
 		return 1
 	}
-
+	//
 	//req.QueryParams["account-id"] = []string{accountId}
 	//req.QueryParams["proposal-id"] = []string{proposalId}
 	//req.QueryParams["orderby"] = []string{"time"}
@@ -360,13 +356,13 @@ func (h UcbCallRHandler) CallRCalculate(w http.ResponseWriter, r *http.Request, 
 	//	Scenarios:		scenarios,
 	//	Body:       body,
 	//}
-	//
+
 	//c, _ := json.Marshal(cs)
-	//
+
 	//fmt.Println(string(c))
-	//
-	////env := os.Getenv("BM_KAFKA_CONF_HOME") + "/resource/kafkaconfig.json"
-	////os.Setenv("BM_KAFKA_CONF_HOME", env)
+
+	//env := os.Getenv("BM_KAFKA_CONF_HOME") + "/resource/kafkaconfig.json"
+	//os.Setenv("BM_KAFKA_CONF_HOME", env)
 	//kafka, err := bmkafka.GetConfigInstance()
 	//if err != nil {
 	//	panic(err)
@@ -401,182 +397,182 @@ func getApi2goRequest(r *http.Request, header http.Header) api2go.Request{
 }
 
 func subscriptionFunc(content interface{}) {
-	//c := content.([]byte)
-	//fmt.Println(string(c))
-
-	h := UcbCallR
 	c := content.([]byte)
-
-	var result resultStruct
-
-	err := json.Unmarshal(c, &result)
-
-	ctx := map[string]string {
-		"client-id": "5cbe7ab8f4ce4352ecb082a3",
-		"account-id": result.Account,
-		"proposal-id": result.Proposal,
-		"paperInput-id": result.PaperInput,
-		"scenario-id": result.Scenario,
-	}
-
-	if err != nil ||  result.Error != nil{
-		//panic("计算失败")
-		ctx["status"] = "no"
-		ctx["msg"] = "计算失败"
-		r, _ := json.Marshal(ctx)
-		fmt.Println(string(r))
-		_ = h.xmpp.SendGroupMsg(h.Args[0], string(r))
-		return
-	}
 	fmt.Println(string(c))
-	if len(c) > 2 {
-		var (
-			result resultStruct
-			hospitalSalesReport UcbModel.HospitalSalesReport
-			productSalesReport UcbModel.ProductSalesReport
-			representativeSalesReport UcbModel.RepresentativeSalesReport
-			citySalesReport UcbModel.CitySalesReport
-			scenarioResult UcbModel.ScenarioResult
 
-			hospitalSalesReportIDs []string
-			productSalesReportIDs []string
-			representativeSalesReportIDs []string
-			citySalesReportIDs []string
-			scenarioResultIDs []string
-
-			assessmentReportID string
-		)
-
-
-		err := json.Unmarshal(c, &result)
-		if err != nil ||  result.Error != nil{
-			//panic("计算失败")
-			return
-		}
-
-		mdb := []BmDaemons.BmDaemon{h.db}
-
-		scenarioStorage := UcbDataStorage.UcbScenarioStorage{}.NewScenarioStorage(mdb)
-		hospitalSalesReportStorage := UcbDataStorage.UcbHospitalSalesReportStorage{}.NewHospitalSalesReportStorage(mdb)
-		productSalesReportStorage := UcbDataStorage.UcbProductSalesReportStorage{}.NewProductSalesReportStorage(mdb)
-		representativeSalesReportStorage := UcbDataStorage.UcbRepresentativeSalesReportStorage{}.NewRepresentativeSalesReportStorage(mdb)
-		citySalesReportStorage := UcbDataStorage.UcbCitySalesReportStorage{}.NewCitySalesReportStorage(mdb)
-		salesReportStorage := UcbDataStorage.UcbSalesReportStorage{}.NewSalesReportStorage(mdb)
-		paperStorage := UcbDataStorage.UcbPaperStorage{}.NewPaperStorage(mdb)
-
-		levelStorage := UcbDataStorage.UcbLevelStorage{}.NewLevelStorage(mdb)
-		levelConfigStorage := UcbDataStorage.UcbLevelConfigStorage{}.NewLevelConfigStorage(mdb)
-
-		scenarioResultStorage := UcbDataStorage.UcbScenarioResultStorage{}.NewScenarioResultStorage(mdb)
-		simplifyResultStorage := UcbDataStorage.UcbSimplifyResultStorage{}.NewSimplifyResultStorage(mdb)
-		assessmentReportStorage := UcbDataStorage.UcbAssessmentReportStorage{}.NewAssessmentReportStorage(mdb)
-
-		req := api2go.Request{
-			QueryParams: map[string][]string{},
-		}
-
-		req.QueryParams["proposal-id"] = []string{result.Proposal}
-		req.QueryParams["account-id"] = []string{result.Account}
-		req.QueryParams["orderby"] = []string{"time"}
-
-		papers := paperStorage.GetAll(req, -1, -1)
-		paper := papers[len(papers) - 1]
-
-		body := result.Body
-
-		hospitalSalesReports := body["hospitalSalesReports"].([]interface{})
-		productSalesReports := body["productSalesReports"].([]interface{})
-		representativeSalesReports := body["representativeSalesReports"].([]interface{})
-		citySalesReports := body["citySalesReports"].([]interface{})
-
-		for _, v := range hospitalSalesReports {
-			mapstructure.Decode(v, &hospitalSalesReport)
-			hospitalSalesReportIDs = append(hospitalSalesReportIDs, hospitalSalesReportStorage.Insert(hospitalSalesReport))
-		}
-
-		for _, v := range productSalesReports {
-			mapstructure.Decode(v, &productSalesReport)
-			productSalesReportIDs = append(productSalesReportIDs, productSalesReportStorage.Insert(productSalesReport))
-		}
-
-		for _, v := range representativeSalesReports {
-			mapstructure.Decode(v, &representativeSalesReport)
-			representativeSalesReportIDs = append(representativeSalesReportIDs, representativeSalesReportStorage.Insert(representativeSalesReport))
-		}
-
-		for _, v := range citySalesReports {
-			mapstructure.Decode(v, &citySalesReport)
-			citySalesReportIDs = append(citySalesReportIDs, citySalesReportStorage.Insert(citySalesReport))
-		}
-
-		salesReportID := salesReportStorage.Insert(UcbModel.SalesReport{
-			ScenarioID: result.Scenario,
-			PaperInputID: result.PaperInput,
-			Time: time.Now().UnixNano(),
-			HospitalSalesReportIDs: hospitalSalesReportIDs,
-			ProductSalesReportIDs: productSalesReportIDs,
-			RepresentativeSalesReportIDs: representativeSalesReportIDs,
-			CitySalesReportIDs: citySalesReportIDs,
-		})
-
-		paper.SalesReportIDs = append(paper.SalesReportIDs, salesReportID)
-
-		req.QueryParams["proposal-id"] = []string{result.Proposal}
-		scenarios := scenarioStorage.GetAll(req, -1,-1)
-		if s := scenarios[len(scenarios)-1]; s.ID == result.Scenario {
-			simplifyReport := body["simplifyReport"].(map[string]interface{})
-			level := simplifyReport["level"].(string)
-			totalQuotaAchievement := simplifyReport["total-quota-achievement"].(float64)
-			scenarioResults := simplifyReport["scenarioResults"].([]interface{})
-
-			req.QueryParams["code"] = []string{level}
-			levelModels := levelStorage.GetAll(req, -1,-1)
-			levelModel := levelModels[len(levelModels)-1]
-
-			req.QueryParams["code"] = []string{"6"} // 6 => UCB 测评报告
-			req.QueryParams["level-id"] = []string{levelModel.ID}
-			levelConfigs := levelConfigStorage.GetAll(req, -1,-1)
-			levelConfig := levelConfigs[len(levelModels) -1]
-
-			for _, v := range scenarioResults {
-				m := v.(map[string]interface{})
-				mapstructure.Decode(m, &scenarioResult)
-				scenarioResultIDs = append(scenarioResultIDs, scenarioResultStorage.Insert(scenarioResult))
-			}
-
-			simplifyResult := UcbModel.SimplifyResult {
-				ScenarioResultsIDs: scenarioResultIDs,
-				TotalQuotaAchievement: totalQuotaAchievement,
-				LevelConfigID: levelConfig.ID,
-			}
-
-			simplifyResultID := simplifyResultStorage.Insert(simplifyResult)
-
-			assessmentReport := UcbModel.AssessmentReport {
-				SimplifyResultID: simplifyResultID,
-				ScenarioID: result.Scenario,
-				Time: time.Now().UnixNano(),
-				PaperInputID: result.PaperInput,
-			}
-
-			assessmentReportID = assessmentReportStorage.Insert(assessmentReport)
-
-		}
-
-		if len(assessmentReportID) > 0 {
-			paper.AssessmentReportIDs = append(paper.AssessmentReportIDs, assessmentReportID)
-		}
-
-		err = paperStorage.Update(*paper)
-		if err != nil {
-			panic("更新Paper失败")
-		}
-	}
-
-	ctx["status"] = "ok"
-	ctx["msg"] = "计算成功"
-
-	r, _ := json.Marshal(ctx)
-	fmt.Println(string(r))
-	_ = h.xmpp.SendGroupMsg(h.Args[0], string(r))
+	//h := UcbCallR
+	//c := content.([]byte)
+	//
+	//var result resultStruct
+	//
+	//err := json.Unmarshal(c, &result)
+	//
+	//ctx := map[string]string {
+	//	"client-id": "5cbe7ab8f4ce4352ecb082a3",
+	//	"account-id": result.Account,
+	//	"proposal-id": result.Proposal,
+	//	"paperInput-id": result.PaperInput,
+	//	"scenario-id": result.Scenario,
+	//}
+	//
+	//if err != nil ||  result.Error != nil{
+	//	//panic("计算失败")
+	//	ctx["status"] = "no"
+	//	ctx["msg"] = "计算失败"
+	//	r, _ := json.Marshal(ctx)
+	//	fmt.Println(string(r))
+	//	_ = h.xmpp.SendGroupMsg(h.Args[0], string(r))
+	//	return
+	//}
+	//fmt.Println(string(c))
+	//if len(c) > 2 {
+	//	var (
+	//		result resultStruct
+	//		hospitalSalesReport UcbModel.HospitalSalesReport
+	//		productSalesReport UcbModel.ProductSalesReport
+	//		representativeSalesReport UcbModel.RepresentativeSalesReport
+	//		citySalesReport UcbModel.CitySalesReport
+	//		scenarioResult UcbModel.ScenarioResult
+	//
+	//		hospitalSalesReportIDs []string
+	//		productSalesReportIDs []string
+	//		representativeSalesReportIDs []string
+	//		citySalesReportIDs []string
+	//		scenarioResultIDs []string
+	//
+	//		assessmentReportID string
+	//	)
+	//
+	//
+	//	err := json.Unmarshal(c, &result)
+	//	if err != nil ||  result.Error != nil{
+	//		//panic("计算失败")
+	//		return
+	//	}
+	//
+	//	mdb := []BmDaemons.BmDaemon{h.db}
+	//
+	//	scenarioStorage := UcbDataStorage.UcbScenarioStorage{}.NewScenarioStorage(mdb)
+	//	hospitalSalesReportStorage := UcbDataStorage.UcbHospitalSalesReportStorage{}.NewHospitalSalesReportStorage(mdb)
+	//	productSalesReportStorage := UcbDataStorage.UcbProductSalesReportStorage{}.NewProductSalesReportStorage(mdb)
+	//	representativeSalesReportStorage := UcbDataStorage.UcbRepresentativeSalesReportStorage{}.NewRepresentativeSalesReportStorage(mdb)
+	//	citySalesReportStorage := UcbDataStorage.UcbCitySalesReportStorage{}.NewCitySalesReportStorage(mdb)
+	//	salesReportStorage := UcbDataStorage.UcbSalesReportStorage{}.NewSalesReportStorage(mdb)
+	//	paperStorage := UcbDataStorage.UcbPaperStorage{}.NewPaperStorage(mdb)
+	//
+	//	levelStorage := UcbDataStorage.UcbLevelStorage{}.NewLevelStorage(mdb)
+	//	levelConfigStorage := UcbDataStorage.UcbLevelConfigStorage{}.NewLevelConfigStorage(mdb)
+	//
+	//	scenarioResultStorage := UcbDataStorage.UcbScenarioResultStorage{}.NewScenarioResultStorage(mdb)
+	//	simplifyResultStorage := UcbDataStorage.UcbSimplifyResultStorage{}.NewSimplifyResultStorage(mdb)
+	//	assessmentReportStorage := UcbDataStorage.UcbAssessmentReportStorage{}.NewAssessmentReportStorage(mdb)
+	//
+	//	req := api2go.Request{
+	//		QueryParams: map[string][]string{},
+	//	}
+	//
+	//	req.QueryParams["proposal-id"] = []string{result.Proposal}
+	//	req.QueryParams["account-id"] = []string{result.Account}
+	//	req.QueryParams["orderby"] = []string{"time"}
+	//
+	//	papers := paperStorage.GetAll(req, -1, -1)
+	//	paper := papers[len(papers) - 1]
+	//
+	//	body := result.Body
+	//
+	//	hospitalSalesReports := body["hospitalSalesReports"].([]interface{})
+	//	productSalesReports := body["productSalesReports"].([]interface{})
+	//	representativeSalesReports := body["representativeSalesReports"].([]interface{})
+	//	citySalesReports := body["citySalesReports"].([]interface{})
+	//
+	//	for _, v := range hospitalSalesReports {
+	//		mapstructure.Decode(v, &hospitalSalesReport)
+	//		hospitalSalesReportIDs = append(hospitalSalesReportIDs, hospitalSalesReportStorage.Insert(hospitalSalesReport))
+	//	}
+	//
+	//	for _, v := range productSalesReports {
+	//		mapstructure.Decode(v, &productSalesReport)
+	//		productSalesReportIDs = append(productSalesReportIDs, productSalesReportStorage.Insert(productSalesReport))
+	//	}
+	//
+	//	for _, v := range representativeSalesReports {
+	//		mapstructure.Decode(v, &representativeSalesReport)
+	//		representativeSalesReportIDs = append(representativeSalesReportIDs, representativeSalesReportStorage.Insert(representativeSalesReport))
+	//	}
+	//
+	//	for _, v := range citySalesReports {
+	//		mapstructure.Decode(v, &citySalesReport)
+	//		citySalesReportIDs = append(citySalesReportIDs, citySalesReportStorage.Insert(citySalesReport))
+	//	}
+	//
+	//	salesReportID := salesReportStorage.Insert(UcbModel.SalesReport{
+	//		ScenarioID: result.Scenario,
+	//		PaperInputID: result.PaperInput,
+	//		Time: time.Now().UnixNano(),
+	//		HospitalSalesReportIDs: hospitalSalesReportIDs,
+	//		ProductSalesReportIDs: productSalesReportIDs,
+	//		RepresentativeSalesReportIDs: representativeSalesReportIDs,
+	//		CitySalesReportIDs: citySalesReportIDs,
+	//	})
+	//
+	//	paper.SalesReportIDs = append(paper.SalesReportIDs, salesReportID)
+	//
+	//	req.QueryParams["proposal-id"] = []string{result.Proposal}
+	//	scenarios := scenarioStorage.GetAll(req, -1,-1)
+	//	if s := scenarios[len(scenarios)-1]; s.ID == result.Scenario {
+	//		simplifyReport := body["simplifyReport"].(map[string]interface{})
+	//		level := simplifyReport["level"].(string)
+	//		totalQuotaAchievement := simplifyReport["total-quota-achievement"].(float64)
+	//		scenarioResults := simplifyReport["scenarioResults"].([]interface{})
+	//
+	//		req.QueryParams["code"] = []string{level}
+	//		levelModels := levelStorage.GetAll(req, -1,-1)
+	//		levelModel := levelModels[len(levelModels)-1]
+	//
+	//		req.QueryParams["code"] = []string{"6"} // 6 => UCB 测评报告
+	//		req.QueryParams["level-id"] = []string{levelModel.ID}
+	//		levelConfigs := levelConfigStorage.GetAll(req, -1,-1)
+	//		levelConfig := levelConfigs[len(levelModels) -1]
+	//
+	//		for _, v := range scenarioResults {
+	//			m := v.(map[string]interface{})
+	//			mapstructure.Decode(m, &scenarioResult)
+	//			scenarioResultIDs = append(scenarioResultIDs, scenarioResultStorage.Insert(scenarioResult))
+	//		}
+	//
+	//		simplifyResult := UcbModel.SimplifyResult {
+	//			ScenarioResultsIDs: scenarioResultIDs,
+	//			TotalQuotaAchievement: totalQuotaAchievement,
+	//			LevelConfigID: levelConfig.ID,
+	//		}
+	//
+	//		simplifyResultID := simplifyResultStorage.Insert(simplifyResult)
+	//
+	//		assessmentReport := UcbModel.AssessmentReport {
+	//			SimplifyResultID: simplifyResultID,
+	//			ScenarioID: result.Scenario,
+	//			Time: time.Now().UnixNano(),
+	//			PaperInputID: result.PaperInput,
+	//		}
+	//
+	//		assessmentReportID = assessmentReportStorage.Insert(assessmentReport)
+	//
+	//	}
+	//
+	//	if len(assessmentReportID) > 0 {
+	//		paper.AssessmentReportIDs = append(paper.AssessmentReportIDs, assessmentReportID)
+	//	}
+	//
+	//	err = paperStorage.Update(*paper)
+	//	if err != nil {
+	//		panic("更新Paper失败")
+	//	}
+	//}
+	//
+	//ctx["status"] = "ok"
+	//ctx["msg"] = "计算成功"
+	//
+	//r, _ := json.Marshal(ctx)
+	//fmt.Println(string(r))
+	//_ = h.xmpp.SendGroupMsg(h.Args[0], string(r))
 }

@@ -413,7 +413,6 @@ func generateCsvFile (fileName string, header []string, body [][]string) error {
 	}
 
 	env := os.Getenv("DOWNLOAD")
-	fmt.Println(env)
 	path := fmt.Sprint(env, fileName)
 
 	newFile, err := os.Create(path)

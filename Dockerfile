@@ -6,11 +6,9 @@ MAINTAINER Pharbers "pqian@pharbers.com"
 
 RUN apk add --no-cache git gcc musl-dev mercurial bash gcc g++ make pkgconfig openssl-dev
 
-RUN mkdir -p /go/files
-
 # 设置工程配置文件的环境变量
 ENV PKG_CONFIG_PATH /usr/lib/pkgconfig
-ENV DOWNLOAD /go/files
+ENV DOWNLOAD /go/files/
 ENV UCB_HOME $GOPATH/src/github.com/PharbersDeveloper/UcbServiceDeploy/deploy-config
 ENV BM_KAFKA_CONF_HOME $GOPATH/src/github.com/PharbersDeveloper/UcbServiceDeploy/deploy-config/resource/kafkaconfig.json
 ENV BM_XMPP_CONF_HOME $GOPATH/src/github.com/PharbersDeveloper/UcbServiceDeploy/deploy-config/resource/xmppconfig.json
@@ -30,10 +28,6 @@ make install
 # 下载依赖
 RUN git clone https://github.com/PharbersDeveloper/UcbServiceDeploy.git  $GOPATH/src/github.com/PharbersDeveloper/UcbServiceDeploy && \
     git clone https://github.com/PharbersDeveloper/UcbPods.git $GOPATH/src/github.com/PharbersDeveloper/UcbPods
-
-#ADD /Users/qianpeng/GitHub/go/src/github.com/PharbersDeveloper/UcbServiceDeploy $GOPATH/src/github.com/PharbersDeveloper/UcbServiceDeploy
-#ADD /Users/qianpeng/GitHub/go/src/github.com/PharbersDeveloper/UcbPods $GOPATH/src/github.com/PharbersDeveloper/UcbPods
-#ADD src/ $GOPATH/src
 
 # 构建可执行文件
 RUN cd $GOPATH/src/github.com/PharbersDeveloper/UcbPods && \
