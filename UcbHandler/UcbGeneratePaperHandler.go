@@ -123,30 +123,6 @@ func (h UcbGeneratePaperHandler) GeneratePaper(w http.ResponseWriter, r *http.Re
 		}
 	}
 
-
-
-	//if err != nil && err.Error() != "not found" {
-	//	panic(fmt.Sprintf(err.Error()))
-	//} else if len(out.ID) > 0 {
-	//	paperId = out.ID
-	//} else {
-	//	paperModel := UcbModel.Paper{
-	//		AccountID: accountId, //token.UserID,
-	//		ProposalID: proposalModel.ID,
-	//		Name: proposalModel.Name,
-	//		Describe: proposalModel.Describe,
-	//		TotalPhase: proposalModel.TotalPhase,
-	//		StartTime: time.Now().UnixNano(),
-	//		EndTime: 0,
-	//		InputState: 0,
-	//		InputIDs: proposalModel.InputIDs,
-	//		SalesReportIDs: proposalModel.SalesReportIDs,
-	//		PersonnelAssessmentIDs: proposalModel.PersonnelAssessmentIDs,
-	//	}
-	//
-	//	paperId = UcbDataStorage.UcbPaperStorage{}.NewPaperStorage(mdb).Insert(paperModel)
-	//}
-
 	//拼接转发的URL
 	scheme := "http://"
 	if r.TLS != nil {

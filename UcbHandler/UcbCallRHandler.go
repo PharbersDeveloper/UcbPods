@@ -9,7 +9,6 @@ import (
 	"github.com/alfredyang1986/BmServiceDef/BmDaemons"
 	"github.com/alfredyang1986/BmServiceDef/BmDaemons/BmMongodb"
 	"github.com/alfredyang1986/BmServiceDef/BmDaemons/BmRedis"
-	"github.com/alfredyang1986/blackmirror/bmkafka"
 	"github.com/julienschmidt/httprouter"
 	"github.com/manyminds/api2go"
 	"github.com/mitchellh/mapstructure"
@@ -85,21 +84,21 @@ func (h UcbCallRHandler) NewCallRHandler(args ...interface{}) UcbCallRHandler {
 		} else {
 		}
 	}
-	go func() {
-		//env := os.Getenv("BM_KAFKA_CONF_HOME") + "/resource/kafkaconfig.json"
-		//os.Setenv("BM_KAFKA_CONF_HOME", env)
-		kafka, _ := bmkafka.GetConfigInstance()
-		topic := kafka.Topics[len(kafka.Topics) -1:]
-		kafka.SubscribeTopics(topic, subscriptionFunc)
-	}()
+	//go func() {
+	//	//env := os.Getenv("BM_KAFKA_CONF_HOME") + "/resource/kafkaconfig.json"
+	//	//os.Setenv("BM_KAFKA_CONF_HOME", env)
+	//	kafka, _ := bmkafka.GetConfigInstance()
+	//	topic := kafka.Topics[len(kafka.Topics) -1:]
+	//	kafka.SubscribeTopics(topic, subscriptionFunc)
+	//}()
 	UcbCallR = UcbCallRHandler{ Method: md, HttpMethod: hm, Args: ag, db: m, rd: r, xmpp: x }
 	return UcbCallR
 }
 
 func (h UcbCallRHandler) CallRCalculate(w http.ResponseWriter, r *http.Request, _ httprouter.Params) int {
-	mdb := []BmDaemons.BmDaemon{h.db}
+	//mdb := []BmDaemons.BmDaemon{h.db}
 	w.Header().Add("Content-Type", "application/json")
-	req := getApi2goRequest(r, w.Header())
+	//req := getApi2goRequest(r, w.Header())
 	params := map[string]string{}
 	res, _ := ioutil.ReadAll(r.Body)
 	result := map[string]interface{}{}
@@ -135,245 +134,245 @@ func (h UcbCallRHandler) CallRCalculate(w http.ResponseWriter, r *http.Request, 
 		return 1
 	}
 
-	req.QueryParams["account-id"] = []string{accountId}
-	req.QueryParams["proposal-id"] = []string{proposalId}
-	req.QueryParams["orderby"] = []string{"time"}
-
-	var (
-		inputs []map[string]interface{}
-		histories []map[string]interface{}
-		goodsConfigMappings []map[string]string
-		competitions []map[string]string
-	)
-
-	scenarioStorage := UcbDataStorage.UcbScenarioStorage{}.NewScenarioStorage(mdb)
-	paperStorage := UcbDataStorage.UcbPaperStorage{}.NewPaperStorage(mdb)
-	paperInputStorage := UcbDataStorage.UcbPaperinputStorage{}.NewPaperinputStorage(mdb)
-	businessInputStorage := UcbDataStorage.UcbBusinessinputStorage{}.NewBusinessinputStorage(mdb)
-	destConfigStorage := UcbDataStorage.UcbDestConfigStorage{}.NewDestConfigStorage(mdb)
-	hospitalConfigStorage := UcbDataStorage.UcbHospitalConfigStorage{}.NewHospitalConfigStorage(mdb)
-	cityStorage := UcbDataStorage.UcbCityStorage{}.NewCityStorage(mdb)
-	hospitalStorage := UcbDataStorage.UcbHospitalStorage{}.NewHospitalStorage(mdb)
-	resourceConfigStorage := UcbDataStorage.UcbResourceConfigStorage{}.NewResourceConfigStorage(mdb)
-	representativeConfigStorage := UcbDataStorage.UcbRepresentativeConfigStorage{}.NewRepresentativeConfigStorage(mdb)
-	representativeStorage := UcbDataStorage.UcbRepresentativeStorage{}.NewRepresentativeStorage(mdb)
-	goodsInputStorage := UcbDataStorage.UcbGoodsinputStorage{}.NewGoodsinputStorage(mdb)
-	goodsConfigStorage := UcbDataStorage.UcbGoodsConfigStorage{}.NewGoodsConfigStorage(mdb)
-	productConfigStorage := UcbDataStorage.UcbProductConfigStorage{}.NewProductConfigStorage(mdb)
-	productStorage := UcbDataStorage.UcbProductStorage{}.NewProductStorage(mdb)
-	salesConfigStorage := UcbDataStorage.UcbSalesConfigStorage{}.NewSalesConfigStorage(mdb)
-
-	salesReportStorage := UcbDataStorage.UcbSalesReportStorage{}.NewSalesReportStorage(mdb)
-	hospitalSalesReport := UcbDataStorage.UcbHospitalSalesReportStorage{}.NewHospitalSalesReportStorage(mdb)
-
-	// 当前周期的所有产品
-	req.QueryParams["scenario-id"] = []string{scenarioId}
-
-	for _, goodsConfig := range goodsConfigStorage.GetAll(req, -1,-1) {
-		productConfig, _ := productConfigStorage.GetOne(goodsConfig.GoodsID)
-		product, _ := productStorage.GetOne(productConfig.ProductID)
-		if productConfig.ProductType == 1 {
-			competitions = append(competitions, map[string]string{
-				"product-id" : goodsConfig.ID,
-				"product-name": product.Name,
-				"treatment-area": productConfig.TreatmentArea,
-			})
-		} else {
-			goodsConfigMappings = append(goodsConfigMappings, map[string]string{
-				goodsConfig.ID: product.Name,
-				"treatmentArea": productConfig.TreatmentArea,
-			})
-		}
-	}
-
-	// 最新的paper
-	papers := paperStorage.GetAll(req, -1, -1)
-	paper := papers[len(papers) - 1]
-
-	// 最新的输入
-	paperInput, _ := paperInputStorage.GetOne(paper.InputIDs[len(paper.InputIDs) - 1])
-
-	cleanQueryParams(&req)
-
-	// 最新的BusinessInputs Inputs
-	req.QueryParams["ids"] = paperInput.BusinessinputIDs
-	businessInputs := businessInputStorage.GetAll(req, -1,-1)
-	for _, businessInput := range businessInputs {
-		var products []interface{}
-
-		hospitalMap := map[string]interface{}{}
-		representativeMap := map[string]interface{}{}
-
-		destConfig, _ := destConfigStorage.GetOne(businessInput.DestConfigId)
-		hospitalConfig, _ := hospitalConfigStorage.GetOne(destConfig.DestID)
-		city, _ := cityStorage.GetOne(hospitalConfig.CityID)
-		hospital, _ := hospitalStorage.GetOne(hospitalConfig.HospitalID)
-		resourceConfig, _ := resourceConfigStorage.GetOne(businessInput.ResourceConfigId)
-		representativeConfig, _ := representativeConfigStorage.GetOne(resourceConfig.ResourceID)
-		representative, _ := representativeStorage.GetOne(representativeConfig.RepresentativeID)
-
-		cleanQueryParams(&req)
-		req.QueryParams["ids"] = businessInput.GoodsInputIds
-		goodsInputs := goodsInputStorage.GetAll(req, -1, -1)
-		for _, goodsInput := range goodsInputs {
-			product := map[string]interface{}{}
-			cleanQueryParams(&req)
-			req.QueryParams["scenario-id"] = []string{paperInput.ScenarioID}
-			req.QueryParams["dest-config-id"] = []string{destConfig.ID}
-			req.QueryParams["goods-config-id"] = []string{goodsInput.GoodsConfigId}
-
-			salesConfig := salesConfigStorage.GetAll(req, -1, -1)[0]
-
-			for _, goodsConfigMapping := range goodsConfigMappings {
-				if v, ok := goodsConfigMapping[goodsInput.GoodsConfigId]; ok {
-					product["product-id"] = goodsInput.GoodsConfigId
-					product["product-name"] = v
-					product["treatment-area"] = goodsConfigMapping["treatmentArea"]
-					product["sales-target"] = goodsInput.SalesTarget
-					product["budget"] = goodsInput.Budget
-					product["potential"] = salesConfig.Potential
-					product["patient-count"] = salesConfig.PatientCount
-					products = append(products, product)
-				}
-			}
-		}
-
-		representativeMap["representative-id"] = resourceConfig.ID
-		representativeMap["representative-name"] = representative.Name
-
-		hospitalMap["city-id"] = city.ID
-		hospitalMap["city-name"] = city.Name
-		hospitalMap["hospital-id"] = destConfig.ID
-		hospitalMap["hospital-name"] = hospital.Name
-		hospitalMap["hospital-level"] = hospital.HospitalLevel
-		hospitalMap["representative"] = representativeMap
-		hospitalMap["products"] = products
-		inputs = append(inputs, hospitalMap)
-	}
-
-	// 上4周期的医院销售报告
-	cleanQueryParams(&req)
-	req.QueryParams["ids"] = paper.SalesReportIDs[len(paper.SalesReportIDs) - 4:]
-	for _, salesReport := range salesReportStorage.GetAll(req, -1, -1) {
-
-		var businessInputMapping []map[string]interface{}
-
-		if len(salesReport.PaperInputID) > 0 {
-			paperInput, _ := paperInputStorage.GetOne(salesReport.PaperInputID)
-			req.QueryParams["ids"] = paperInput.BusinessinputIDs
-			businessInputs := businessInputStorage.GetAll(req, -1,-1)
-
-			for _, businessInput := range businessInputs {
-				req.QueryParams["ids"] = businessInput.GoodsInputIds
-				for _, goodsInput := range goodsInputStorage.GetAll(req, -1, -1) {
-					businessInputMapping = append(businessInputMapping, map[string]interface{}{
-						"destConfigId": businessInput.DestConfigId,
-						"goodsConfigId": goodsInput.GoodsConfigId,
-						"resourceConfigId": businessInput.ResourceConfigId,
-						"budget": goodsInput.Budget,
-					})
-				}
-			}
-		}
-
-		scenarioMap := map[string]interface{}{}
-
-		scenario, _ := scenarioStorage.GetOne(salesReport.ScenarioID)
-		scenarioMap["name"] = scenario.Name
-		scenarioMap["phase"] = scenario.Phase
-
-		req.QueryParams["ids"] = salesReport.HospitalSalesReportIDs
-		for _, hospitalSalesReport := range hospitalSalesReport.GetAll(req, -1, -1) {
-			hospitalMap := map[string]interface{}{}
-			if hospitalSalesReport.DestConfigID != "-1" {
-				destConfig, _ := destConfigStorage.GetOne(hospitalSalesReport.DestConfigID)
-				hospitalConfig, _ := hospitalConfigStorage.GetOne(destConfig.DestID)
-				hospital, _ := hospitalStorage.GetOne(hospitalConfig.HospitalID)
-
-				resourceConfig, _ := resourceConfigStorage.GetOne(hospitalSalesReport.ResourceConfigID)
-				representativeConfig, _ := representativeConfigStorage.GetOne(resourceConfig.ResourceID)
-				representative, _ := representativeStorage.GetOne(representativeConfig.RepresentativeID)
-
-				goodsConfig, _  := goodsConfigStorage.GetOne(hospitalSalesReport.GoodsConfigID)
-				productConfig, _ := productConfigStorage.GetOne(goodsConfig.GoodsID)
-				product, _ := productStorage.GetOne(productConfig.ProductID)
-
-
-				for _, businessMapGoods := range businessInputMapping {
-					if businessMapGoods["destConfigId"].(string) ==  hospitalSalesReport.DestConfigID &&
-						businessMapGoods["goodsConfigId"].(string) == hospitalSalesReport.GoodsConfigID &&
-						businessMapGoods["resourceConfigId"].(string) == hospitalSalesReport.ResourceConfigID {
-
-						hospitalMap["budget"] = businessMapGoods["budget"]
-					}
-				}
-
-				hospitalMap["budget"] = 0
-				hospitalMap["scenario"] = scenarioMap
-				hospitalMap["hospital-name"] = hospital.Name
-				hospitalMap["representative-name"] = representative.Name
-				hospitalMap["product-name"] = product.Name
-
-				hospitalMap["sales"] = hospitalSalesReport.Sales
-				hospitalMap["sales-quota"] = hospitalSalesReport.SalesQuota
-				hospitalMap["ytd-sales"] = hospitalSalesReport.YTDSales
-				hospitalMap["drug-entrance-info"] = hospitalSalesReport.DrugEntranceInfo
-				histories = append(histories, hospitalMap)
-			}
-		}
-	}
-
-
-	header := map[string]string{}
-	currentScenario := map[string]interface{}{}
-	var scenarios []interface{}
-	body := map[string]interface{}{}
-
-	header["application"] = "ucb"
-	header["contentType"] = "json"
-
-	sm, _ := scenarioStorage.GetOne(scenarioId)
-	currentScenario["id"] = sm.ID
-	currentScenario["phase"] = sm.Phase
-
-	body["inputs"] = inputs
-	body["competitions"] = competitions
-	body["histories"] = histories
-
-	// 查询所有的周期
-	cleanQueryParams(&req)
-	req.QueryParams["proposal-id"] = []string{proposalId}
-	for _, v := range scenarioStorage.GetAll(req, -1, -1) {
-		if v.Phase > 0 {
-			scenarios = append(scenarios, map[string]interface{}{
-				"id": v.ID,
-				"phase" : v.Phase,
-			})
-		}
-	}
-
-	cs := &calcStruct {
-		Header:     header,
-		Account:    accountId,
-		Proposal:   proposalId,
-		PaperInput: paperInput.ID,
-		CurrentScenario:   currentScenario,
-		Scenarios:		scenarios,
-		Body:       body,
-	}
-
-	c, _ := json.Marshal(cs)
-
-	fmt.Println(string(c))
-
-	//env := os.Getenv("BM_KAFKA_CONF_HOME") + "/resource/kafkaconfig.json"
-	//os.Setenv("BM_KAFKA_CONF_HOME", env)
-	kafka, err := bmkafka.GetConfigInstance()
-	if err != nil {
-		panic(err)
-	}
-	topic := kafka.Topics[0]
-	kafka.Produce(&topic, c)
+	//req.QueryParams["account-id"] = []string{accountId}
+	//req.QueryParams["proposal-id"] = []string{proposalId}
+	//req.QueryParams["orderby"] = []string{"time"}
+	//
+	//var (
+	//	inputs []map[string]interface{}
+	//	histories []map[string]interface{}
+	//	goodsConfigMappings []map[string]string
+	//	competitions []map[string]string
+	//)
+	//
+	//scenarioStorage := UcbDataStorage.UcbScenarioStorage{}.NewScenarioStorage(mdb)
+	//paperStorage := UcbDataStorage.UcbPaperStorage{}.NewPaperStorage(mdb)
+	//paperInputStorage := UcbDataStorage.UcbPaperinputStorage{}.NewPaperinputStorage(mdb)
+	//businessInputStorage := UcbDataStorage.UcbBusinessinputStorage{}.NewBusinessinputStorage(mdb)
+	//destConfigStorage := UcbDataStorage.UcbDestConfigStorage{}.NewDestConfigStorage(mdb)
+	//hospitalConfigStorage := UcbDataStorage.UcbHospitalConfigStorage{}.NewHospitalConfigStorage(mdb)
+	//cityStorage := UcbDataStorage.UcbCityStorage{}.NewCityStorage(mdb)
+	//hospitalStorage := UcbDataStorage.UcbHospitalStorage{}.NewHospitalStorage(mdb)
+	//resourceConfigStorage := UcbDataStorage.UcbResourceConfigStorage{}.NewResourceConfigStorage(mdb)
+	//representativeConfigStorage := UcbDataStorage.UcbRepresentativeConfigStorage{}.NewRepresentativeConfigStorage(mdb)
+	//representativeStorage := UcbDataStorage.UcbRepresentativeStorage{}.NewRepresentativeStorage(mdb)
+	//goodsInputStorage := UcbDataStorage.UcbGoodsinputStorage{}.NewGoodsinputStorage(mdb)
+	//goodsConfigStorage := UcbDataStorage.UcbGoodsConfigStorage{}.NewGoodsConfigStorage(mdb)
+	//productConfigStorage := UcbDataStorage.UcbProductConfigStorage{}.NewProductConfigStorage(mdb)
+	//productStorage := UcbDataStorage.UcbProductStorage{}.NewProductStorage(mdb)
+	//salesConfigStorage := UcbDataStorage.UcbSalesConfigStorage{}.NewSalesConfigStorage(mdb)
+	//
+	//salesReportStorage := UcbDataStorage.UcbSalesReportStorage{}.NewSalesReportStorage(mdb)
+	//hospitalSalesReport := UcbDataStorage.UcbHospitalSalesReportStorage{}.NewHospitalSalesReportStorage(mdb)
+	//
+	//// 当前周期的所有产品
+	//req.QueryParams["scenario-id"] = []string{scenarioId}
+	//
+	//for _, goodsConfig := range goodsConfigStorage.GetAll(req, -1,-1) {
+	//	productConfig, _ := productConfigStorage.GetOne(goodsConfig.GoodsID)
+	//	product, _ := productStorage.GetOne(productConfig.ProductID)
+	//	if productConfig.ProductType == 1 {
+	//		competitions = append(competitions, map[string]string{
+	//			"product-id" : goodsConfig.ID,
+	//			"product-name": product.Name,
+	//			"treatment-area": productConfig.TreatmentArea,
+	//		})
+	//	} else {
+	//		goodsConfigMappings = append(goodsConfigMappings, map[string]string{
+	//			goodsConfig.ID: product.Name,
+	//			"treatmentArea": productConfig.TreatmentArea,
+	//		})
+	//	}
+	//}
+	//
+	//// 最新的paper
+	//papers := paperStorage.GetAll(req, -1, -1)
+	//paper := papers[len(papers) - 1]
+	//
+	//// 最新的输入
+	//paperInput, _ := paperInputStorage.GetOne(paper.InputIDs[len(paper.InputIDs) - 1])
+	//
+	//cleanQueryParams(&req)
+	//
+	//// 最新的BusinessInputs Inputs
+	//req.QueryParams["ids"] = paperInput.BusinessinputIDs
+	//businessInputs := businessInputStorage.GetAll(req, -1,-1)
+	//for _, businessInput := range businessInputs {
+	//	var products []interface{}
+	//
+	//	hospitalMap := map[string]interface{}{}
+	//	representativeMap := map[string]interface{}{}
+	//
+	//	destConfig, _ := destConfigStorage.GetOne(businessInput.DestConfigId)
+	//	hospitalConfig, _ := hospitalConfigStorage.GetOne(destConfig.DestID)
+	//	city, _ := cityStorage.GetOne(hospitalConfig.CityID)
+	//	hospital, _ := hospitalStorage.GetOne(hospitalConfig.HospitalID)
+	//	resourceConfig, _ := resourceConfigStorage.GetOne(businessInput.ResourceConfigId)
+	//	representativeConfig, _ := representativeConfigStorage.GetOne(resourceConfig.ResourceID)
+	//	representative, _ := representativeStorage.GetOne(representativeConfig.RepresentativeID)
+	//
+	//	cleanQueryParams(&req)
+	//	req.QueryParams["ids"] = businessInput.GoodsInputIds
+	//	goodsInputs := goodsInputStorage.GetAll(req, -1, -1)
+	//	for _, goodsInput := range goodsInputs {
+	//		product := map[string]interface{}{}
+	//		cleanQueryParams(&req)
+	//		req.QueryParams["scenario-id"] = []string{paperInput.ScenarioID}
+	//		req.QueryParams["dest-config-id"] = []string{destConfig.ID}
+	//		req.QueryParams["goods-config-id"] = []string{goodsInput.GoodsConfigId}
+	//
+	//		salesConfig := salesConfigStorage.GetAll(req, -1, -1)[0]
+	//
+	//		for _, goodsConfigMapping := range goodsConfigMappings {
+	//			if v, ok := goodsConfigMapping[goodsInput.GoodsConfigId]; ok {
+	//				product["product-id"] = goodsInput.GoodsConfigId
+	//				product["product-name"] = v
+	//				product["treatment-area"] = goodsConfigMapping["treatmentArea"]
+	//				product["sales-target"] = goodsInput.SalesTarget
+	//				product["budget"] = goodsInput.Budget
+	//				product["potential"] = salesConfig.Potential
+	//				product["patient-count"] = salesConfig.PatientCount
+	//				products = append(products, product)
+	//			}
+	//		}
+	//	}
+	//
+	//	representativeMap["representative-id"] = resourceConfig.ID
+	//	representativeMap["representative-name"] = representative.Name
+	//
+	//	hospitalMap["city-id"] = city.ID
+	//	hospitalMap["city-name"] = city.Name
+	//	hospitalMap["hospital-id"] = destConfig.ID
+	//	hospitalMap["hospital-name"] = hospital.Name
+	//	hospitalMap["hospital-level"] = hospital.HospitalLevel
+	//	hospitalMap["representative"] = representativeMap
+	//	hospitalMap["products"] = products
+	//	inputs = append(inputs, hospitalMap)
+	//}
+	//
+	//// 上4周期的医院销售报告
+	//cleanQueryParams(&req)
+	//req.QueryParams["ids"] = paper.SalesReportIDs[len(paper.SalesReportIDs) - 4:]
+	//for _, salesReport := range salesReportStorage.GetAll(req, -1, -1) {
+	//
+	//	var businessInputMapping []map[string]interface{}
+	//
+	//	if len(salesReport.PaperInputID) > 0 {
+	//		paperInput, _ := paperInputStorage.GetOne(salesReport.PaperInputID)
+	//		req.QueryParams["ids"] = paperInput.BusinessinputIDs
+	//		businessInputs := businessInputStorage.GetAll(req, -1,-1)
+	//
+	//		for _, businessInput := range businessInputs {
+	//			req.QueryParams["ids"] = businessInput.GoodsInputIds
+	//			for _, goodsInput := range goodsInputStorage.GetAll(req, -1, -1) {
+	//				businessInputMapping = append(businessInputMapping, map[string]interface{}{
+	//					"destConfigId": businessInput.DestConfigId,
+	//					"goodsConfigId": goodsInput.GoodsConfigId,
+	//					"resourceConfigId": businessInput.ResourceConfigId,
+	//					"budget": goodsInput.Budget,
+	//				})
+	//			}
+	//		}
+	//	}
+	//
+	//	scenarioMap := map[string]interface{}{}
+	//
+	//	scenario, _ := scenarioStorage.GetOne(salesReport.ScenarioID)
+	//	scenarioMap["name"] = scenario.Name
+	//	scenarioMap["phase"] = scenario.Phase
+	//
+	//	req.QueryParams["ids"] = salesReport.HospitalSalesReportIDs
+	//	for _, hospitalSalesReport := range hospitalSalesReport.GetAll(req, -1, -1) {
+	//		hospitalMap := map[string]interface{}{}
+	//		if hospitalSalesReport.DestConfigID != "-1" {
+	//			destConfig, _ := destConfigStorage.GetOne(hospitalSalesReport.DestConfigID)
+	//			hospitalConfig, _ := hospitalConfigStorage.GetOne(destConfig.DestID)
+	//			hospital, _ := hospitalStorage.GetOne(hospitalConfig.HospitalID)
+	//
+	//			resourceConfig, _ := resourceConfigStorage.GetOne(hospitalSalesReport.ResourceConfigID)
+	//			representativeConfig, _ := representativeConfigStorage.GetOne(resourceConfig.ResourceID)
+	//			representative, _ := representativeStorage.GetOne(representativeConfig.RepresentativeID)
+	//
+	//			goodsConfig, _  := goodsConfigStorage.GetOne(hospitalSalesReport.GoodsConfigID)
+	//			productConfig, _ := productConfigStorage.GetOne(goodsConfig.GoodsID)
+	//			product, _ := productStorage.GetOne(productConfig.ProductID)
+	//
+	//
+	//			for _, businessMapGoods := range businessInputMapping {
+	//				if businessMapGoods["destConfigId"].(string) ==  hospitalSalesReport.DestConfigID &&
+	//					businessMapGoods["goodsConfigId"].(string) == hospitalSalesReport.GoodsConfigID &&
+	//					businessMapGoods["resourceConfigId"].(string) == hospitalSalesReport.ResourceConfigID {
+	//
+	//					hospitalMap["budget"] = businessMapGoods["budget"]
+	//				}
+	//			}
+	//
+	//			hospitalMap["budget"] = 0
+	//			hospitalMap["scenario"] = scenarioMap
+	//			hospitalMap["hospital-name"] = hospital.Name
+	//			hospitalMap["representative-name"] = representative.Name
+	//			hospitalMap["product-name"] = product.Name
+	//
+	//			hospitalMap["sales"] = hospitalSalesReport.Sales
+	//			hospitalMap["sales-quota"] = hospitalSalesReport.SalesQuota
+	//			hospitalMap["ytd-sales"] = hospitalSalesReport.YTDSales
+	//			hospitalMap["drug-entrance-info"] = hospitalSalesReport.DrugEntranceInfo
+	//			histories = append(histories, hospitalMap)
+	//		}
+	//	}
+	//}
+	//
+	//
+	//header := map[string]string{}
+	//currentScenario := map[string]interface{}{}
+	//var scenarios []interface{}
+	//body := map[string]interface{}{}
+	//
+	//header["application"] = "ucb"
+	//header["contentType"] = "json"
+	//
+	//sm, _ := scenarioStorage.GetOne(scenarioId)
+	//currentScenario["id"] = sm.ID
+	//currentScenario["phase"] = sm.Phase
+	//
+	//body["inputs"] = inputs
+	//body["competitions"] = competitions
+	//body["histories"] = histories
+	//
+	//// 查询所有的周期
+	//cleanQueryParams(&req)
+	//req.QueryParams["proposal-id"] = []string{proposalId}
+	//for _, v := range scenarioStorage.GetAll(req, -1, -1) {
+	//	if v.Phase > 0 {
+	//		scenarios = append(scenarios, map[string]interface{}{
+	//			"id": v.ID,
+	//			"phase" : v.Phase,
+	//		})
+	//	}
+	//}
+	//
+	//cs := &calcStruct {
+	//	Header:     header,
+	//	Account:    accountId,
+	//	Proposal:   proposalId,
+	//	PaperInput: paperInput.ID,
+	//	CurrentScenario:   currentScenario,
+	//	Scenarios:		scenarios,
+	//	Body:       body,
+	//}
+	//
+	//c, _ := json.Marshal(cs)
+	//
+	//fmt.Println(string(c))
+	//
+	////env := os.Getenv("BM_KAFKA_CONF_HOME") + "/resource/kafkaconfig.json"
+	////os.Setenv("BM_KAFKA_CONF_HOME", env)
+	//kafka, err := bmkafka.GetConfigInstance()
+	//if err != nil {
+	//	panic(err)
+	//}
+	//topic := kafka.Topics[0]
+	//kafka.Produce(&topic, c)
 
 	result["status"] = "ok"
 	result["msg"] = "正在计算"
@@ -475,6 +474,10 @@ func subscriptionFunc(content interface{}) {
 		req := api2go.Request{
 			QueryParams: map[string][]string{},
 		}
+
+		req.QueryParams["proposal-id"] = []string{result.Proposal}
+		req.QueryParams["account-id"] = []string{result.Account}
+		req.QueryParams["orderby"] = []string{"time"}
 
 		papers := paperStorage.GetAll(req, -1, -1)
 		paper := papers[len(papers) - 1]

@@ -6,6 +6,8 @@ MAINTAINER Pharbers "pqian@pharbers.com"
 
 RUN apk add --no-cache git gcc musl-dev mercurial bash gcc g++ make pkgconfig openssl-dev
 
+RUN mkdir -p /go/files
+
 # 设置工程配置文件的环境变量
 ENV PKG_CONFIG_PATH /usr/lib/pkgconfig
 ENV DOWNLOAD /go/files
@@ -15,7 +17,7 @@ ENV BM_XMPP_CONF_HOME $GOPATH/src/github.com/PharbersDeveloper/UcbServiceDeploy/
 ENV GO111MODULE on
 
 #LABEL
-LABEL UcbPods.version="0.0.20" maintainer="Alex"
+LABEL UcbPods.version="0.0.21" maintainer="Alex"
 
 # 下载kafka
 RUN git clone https://github.com/edenhill/librdkafka.git $GOPATH/librdkafka
@@ -28,6 +30,10 @@ make install
 # 下载依赖
 RUN git clone https://github.com/PharbersDeveloper/UcbServiceDeploy.git  $GOPATH/src/github.com/PharbersDeveloper/UcbServiceDeploy && \
     git clone https://github.com/PharbersDeveloper/UcbPods.git $GOPATH/src/github.com/PharbersDeveloper/UcbPods
+
+#ADD /Users/qianpeng/GitHub/go/src/github.com/PharbersDeveloper/UcbServiceDeploy $GOPATH/src/github.com/PharbersDeveloper/UcbServiceDeploy
+#ADD /Users/qianpeng/GitHub/go/src/github.com/PharbersDeveloper/UcbPods $GOPATH/src/github.com/PharbersDeveloper/UcbPods
+#ADD src/ $GOPATH/src
 
 # 构建可执行文件
 RUN cd $GOPATH/src/github.com/PharbersDeveloper/UcbPods && \
