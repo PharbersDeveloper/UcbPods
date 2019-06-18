@@ -76,29 +76,7 @@ func (h UcbGeneratePaperHandler) GeneratePaper(w http.ResponseWriter, r *http.Re
 	}
 	proposalModel, _ := UcbDataStorage.UcbProposalStorage{}.NewProposalStorage(mdb).GetOne(proposalId)
 
-	var (
-		//out UcbModel.Paper
-		paperId string
-		)
-	//cond := bson.M{"proposal-id": proposalId, "account-id": accountId}
-
-	//err = h.db.FindOneByCondition(&UcbModel.Paper{}, &out, cond)
-
-	reqs := api2go.Request{
-		PlainRequest: r,
-		Header: w.Header(),
-		QueryParams: map[string][]string{},
-	}
-
-	reqs.QueryParams["account-id"] = []string{accountId}
-	reqs.QueryParams["proposal-id"] = []string{proposalId}
-	reqs.QueryParams["orderby"] = []string{"time"}
-
-	papers := UcbDataStorage.UcbPaperStorage{}.NewPaperStorage(mdb).GetAll(reqs, -1, -1)
-
-	paper := papers[len(papers)-1]
-
-	if paper.InputState == 3 {
+	insertPaper := func() string {
 		paperModel := UcbModel.Paper{
 			AccountID: accountId, //token.UserID,
 			ProposalID: proposalModel.ID,
@@ -114,10 +92,38 @@ func (h UcbGeneratePaperHandler) GeneratePaper(w http.ResponseWriter, r *http.Re
 			Time: time.Now().UnixNano(),
 		}
 
-		paperId = UcbDataStorage.UcbPaperStorage{}.NewPaperStorage(mdb).Insert(paperModel)
-	} else {
-		paperId = paper.ID
+		return UcbDataStorage.UcbPaperStorage{}.NewPaperStorage(mdb).Insert(paperModel)
 	}
+
+	var (
+		paperId string
+		paper *UcbModel.Paper
+	)
+
+	reqs := api2go.Request{
+		PlainRequest: r,
+		Header: w.Header(),
+		QueryParams: map[string][]string{},
+	}
+
+	reqs.QueryParams["account-id"] = []string{accountId}
+	reqs.QueryParams["proposal-id"] = []string{proposalId}
+	reqs.QueryParams["orderby"] = []string{"time"}
+
+	papers := UcbDataStorage.UcbPaperStorage{}.NewPaperStorage(mdb).GetAll(reqs, -1, -1)
+
+	if len(papers) == 0 {
+		paperId = insertPaper()
+	} else {
+		paper = papers[len(papers)-1]
+		if paper.InputState == 3 {
+			paperId = insertPaper()
+		} else {
+			paperId = paper.ID
+		}
+	}
+
+
 
 	//if err != nil && err.Error() != "not found" {
 	//	panic(fmt.Sprintf(err.Error()))
