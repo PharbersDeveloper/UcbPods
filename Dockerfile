@@ -15,7 +15,7 @@ ENV BM_XMPP_CONF_HOME $GOPATH/src/github.com/PharbersDeveloper/UcbServiceDeploy/
 ENV GO111MODULE on
 
 #LABEL
-LABEL UcbPods.version="0.0.23" maintainer="Alex"
+LABEL UcbPods.version="0.0.24" maintainer="Alex"
 
 # 下载kafka
 RUN git clone https://github.com/edenhill/librdkafka.git $GOPATH/librdkafka

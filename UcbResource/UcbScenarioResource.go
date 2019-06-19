@@ -65,7 +65,7 @@ func (c UcbScenarioResource) NewScenarioResource(args []BmDataStorage.BmStorage)
 func (c UcbScenarioResource) FindAll(r api2go.Request) (api2go.Responder, error) {
 	var result []UcbModel.Scenario
 	proposalsID, psok := r.QueryParams["proposal-id"]
-	_, acok := r.QueryParams["account-id"]
+	accountID, acok := r.QueryParams["account-id"]
 
 	paperinputsID, piok := r.QueryParams["paperinputsID"]
 	personnelAssessmentsID, paok := r.QueryParams["personnelAssessmentsID"]
@@ -77,12 +77,18 @@ func (c UcbScenarioResource) FindAll(r api2go.Request) (api2go.Responder, error)
 	if psok && acok {
 
 		proposalModel, _ := c.UcbProposalStorage.GetOne(proposalsID[0])
+		r.QueryParams["proposal-id"] = []string{proposalsID[0]}
+		r.QueryParams["account-id"] = []string{accountID[0]}
 		r.QueryParams["orderby"] = []string{"time"}
 		paperModels := c.UcbPaperStorage.GetAll(r, -1,-1)
 		paperModel := paperModels[len(paperModels) - 1]
+
+		r.QueryParams = map[string][]string{}
 		r.QueryParams["ids"] = paperModel.InputIDs
-		r.QueryParams["orderby"] = []string{"time"}
+		//r.QueryParams["orderby"] = []string{"time"}
 		paperInputModel := c.UcbPaperinputStorage.GetAll(r, -1,-1)
+
+		r.QueryParams = map[string][]string{}
 		var (
 			lastPhase int
 
@@ -94,6 +100,8 @@ func (c UcbScenarioResource) FindAll(r api2go.Request) (api2go.Responder, error)
 			lastPhase = 1
 		}
 		totalPhase := proposalModel.TotalPhase
+
+		r.QueryParams["proposal-id"] = []string{proposalsID[0]}
 
 		if paperModel.InputState == 1 || paperModel.InputState == 4 {
 			r.QueryParams["phase"] = []string{strconv.Itoa(lastPhase)}
