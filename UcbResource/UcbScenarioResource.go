@@ -88,14 +88,14 @@ func (c UcbScenarioResource) FindAll(r api2go.Request) (api2go.Responder, error)
 
 		)
 		if paperInputModel != nil {
-			lastPaperInputModel := paperInputModel[len(paperInputModel)-1:][0]
+			lastPaperInputModel := paperInputModel[len(paperInputModel)-1]
 			lastPhase = lastPaperInputModel.Phase
 		} else {
 			lastPhase = 1
 		}
 		totalPhase := proposalModel.TotalPhase
 
-		if paperModel.InputState == 1 ||paperModel.InputState == 4 {
+		if paperModel.InputState == 1 || paperModel.InputState == 4 {
 			r.QueryParams["phase"] = []string{strconv.Itoa(lastPhase)}
 			result = c.UcbScenarioStorage.GetAll(r, -1, -1)
 		} else if paperModel.InputState == 2 && lastPhase != totalPhase {

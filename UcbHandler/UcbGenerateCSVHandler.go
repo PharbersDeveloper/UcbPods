@@ -228,6 +228,8 @@ func (h UcbGenerateCSVHandler) csvDataOut(proposalId, accountId, scenarioId stri
 		if len(salesReport.PaperInputID) > 0 {
 			paperInput, _ := paperInputStorage.GetOne(salesReport.PaperInputID)
 
+			req.QueryParams = map[string][]string{}
+
 			req.QueryParams["ids"] = paperInput.BusinessinputIDs
 			businessInputs := businessInputStorage.GetAll(req, -1, -1)
 			for _, businessInput := range businessInputs {
@@ -241,6 +243,7 @@ func (h UcbGenerateCSVHandler) csvDataOut(proposalId, accountId, scenarioId stri
 						repConfig, _ := representativeConfigStorage.GetOne(resourceConfig.ResourceID)
 						rep, _ := representativeStorage.GetOne(repConfig.RepresentativeID)
 
+						req.QueryParams["ids"] = businessInput.GoodsInputIds
 						for _, goodsInput := range goodsInputStorage.GetAll(req, -1, -1) {
 							goodsConfig, _ := goodsConfigStorage.GetOne(goodsInput.GoodsConfigId)
 							productConfig, _ := productConfigStorage.GetOne(goodsConfig.GoodsID)
@@ -257,25 +260,24 @@ func (h UcbGenerateCSVHandler) csvDataOut(proposalId, accountId, scenarioId stri
 					}
 				}
 			}
-		} else {
-			for _, hospitalSalesReport :=  range hospitalSalesReports {
-				destConfig, _ := destConfigStorage.GetOne(hospitalSalesReport.DestConfigID)
-				hospitalConfig, _ := hospitalConfigStorage.GetOne(destConfig.DestID)
-				city, _ := cityStorage.GetOne(hospitalConfig.CityID)
-				hospital, _ := hospitalStorage.GetOne(hospitalConfig.HospitalID)
-				resourceConfig, _ := resourceConfigStorage.GetOne(hospitalSalesReport.ResourceConfigID)
-				repConfig, _ := representativeConfigStorage.GetOne(resourceConfig.ResourceID)
-				rep, _ := representativeStorage.GetOne(repConfig.RepresentativeID)
-				goodsConfig, _ := goodsConfigStorage.GetOne(hospitalSalesReport.GoodsConfigID)
-				productConfig, _ := productConfigStorage.GetOne(goodsConfig.GoodsID)
-				product, _ := productStorage.GetOne(productConfig.ProductID)
-				content := []string{scenario.Name, city.Name, hospital.Name, hospital.HospitalLevel,
-					rep.Name, product.Name, hospitalSalesReport.DrugEntranceInfo,
-					strconv.Itoa(hospitalSalesReport.PatientCount),
-					strconv.FormatFloat(hospitalSalesReport.QuotaAchievement, 'f', -1, 32),
-					strconv.FormatFloat(hospitalSalesReport.Sales,'f', -1, 32)}
-				reportBody = append(reportBody, content)
-			}
+		}
+		for _, hospitalSalesReport :=  range hospitalSalesReports {
+			destConfig, _ := destConfigStorage.GetOne(hospitalSalesReport.DestConfigID)
+			hospitalConfig, _ := hospitalConfigStorage.GetOne(destConfig.DestID)
+			city, _ := cityStorage.GetOne(hospitalConfig.CityID)
+			hospital, _ := hospitalStorage.GetOne(hospitalConfig.HospitalID)
+			resourceConfig, _ := resourceConfigStorage.GetOne(hospitalSalesReport.ResourceConfigID)
+			repConfig, _ := representativeConfigStorage.GetOne(resourceConfig.ResourceID)
+			rep, _ := representativeStorage.GetOne(repConfig.RepresentativeID)
+			goodsConfig, _ := goodsConfigStorage.GetOne(hospitalSalesReport.GoodsConfigID)
+			productConfig, _ := productConfigStorage.GetOne(goodsConfig.GoodsID)
+			product, _ := productStorage.GetOne(productConfig.ProductID)
+			content := []string{scenario.Name, city.Name, hospital.Name, hospital.HospitalLevel,
+				rep.Name, product.Name, hospitalSalesReport.DrugEntranceInfo,
+				strconv.Itoa(hospitalSalesReport.PatientCount),
+				strconv.FormatFloat(hospitalSalesReport.QuotaAchievement, 'f', -1, 32),
+				strconv.FormatFloat(hospitalSalesReport.Sales,'f', -1, 32)}
+			reportBody = append(reportBody, content)
 		}
 	}
 

@@ -449,15 +449,31 @@ func (s UcbPaperResource) representativeSalesReportSummary(r api2go.Request) (ap
 		hospitalSalesReports := s.UcbHospitalSalesReportStorage.GetAll(r, -1,-1)
 
 		r.QueryParams = map[string][]string{}
-		r.QueryParams["scenario-id"] = []string{salesReportModel.ScenarioID}
-		r.QueryParams["dest-type"] = []string{"1"}
 
-		destConfigs := s.UcbDestConfigStorage.GetAll(r, -1, -1)
-
-		for _, destConfig := range  destConfigs {
-			hospitalConfig, _:= s.UcbHospitalConfigStorage.GetOne(destConfig.DestID)
-			hospital, _ := s.UcbHospitalStorage.GetOne(hospitalConfig.HospitalID)
-			for _, hospitalSalesReport := range hospitalSalesReports {
+		//for _, destConfig := range  destConfigs {
+		//	hospitalConfig, _:= s.UcbHospitalConfigStorage.GetOne(destConfig.DestID)
+		//	hospital, _ := s.UcbHospitalStorage.GetOne(hospitalConfig.HospitalID)
+		//	for _, hospitalSalesReport := range hospitalSalesReports {
+		//		if destConfig.ID == hospitalSalesReport.DestConfigID && hospital.HospitalLevel == "三级"{
+		//			salesTo3 = salesTo3 + hospitalSalesReport.Sales
+		//			contributionTo3 = contributionTo3 + hospitalSalesReport.SalesContribute
+		//		} else if destConfig.ID == hospitalSalesReport.DestConfigID && hospital.HospitalLevel == "二级" {
+		//			salesTo2 = salesTo2 + hospitalSalesReport.Sales
+		//			contributionTo2 = contributionTo2 + hospitalSalesReport.SalesContribute
+		//		} else if destConfig.ID == hospitalSalesReport.DestConfigID && hospital.HospitalLevel == "一级" {
+		//			salesTo1 = salesTo1 + hospitalSalesReport.Sales
+		//			contributionTo1 = contributionTo1 + hospitalSalesReport.SalesContribute
+		//		} else if hospitalSalesReport.DestConfigID == "-1" {
+		//			salesOut = salesOut + hospitalSalesReport.Sales
+		//			contributionOut = contributionOut + hospitalSalesReport.SalesContribute
+		//		}
+		//	}
+		//}
+		for _, hospitalSalesReport := range hospitalSalesReports {
+			if hospitalSalesReport.DestConfigID != "-1" {
+				destConfig, _ := s.UcbDestConfigStorage.GetOne(hospitalSalesReport.DestConfigID)
+				hospitalConfig, _:= s.UcbHospitalConfigStorage.GetOne(destConfig.DestID)
+				hospital, _ := s.UcbHospitalStorage.GetOne(hospitalConfig.HospitalID)
 				if destConfig.ID == hospitalSalesReport.DestConfigID && hospital.HospitalLevel == "三级"{
 					salesTo3 = salesTo3 + hospitalSalesReport.Sales
 					contributionTo3 = contributionTo3 + hospitalSalesReport.SalesContribute
@@ -467,12 +483,13 @@ func (s UcbPaperResource) representativeSalesReportSummary(r api2go.Request) (ap
 				} else if destConfig.ID == hospitalSalesReport.DestConfigID && hospital.HospitalLevel == "一级" {
 					salesTo1 = salesTo1 + hospitalSalesReport.Sales
 					contributionTo1 = contributionTo1 + hospitalSalesReport.SalesContribute
-				} else if hospitalSalesReport.DestConfigID == "-1" {
-					salesOut = salesOut + hospitalSalesReport.Sales
-					contributionOut = contributionOut + hospitalSalesReport.SalesContribute
 				}
+			} else {
+				salesOut = salesOut + hospitalSalesReport.Sales
+				contributionOut = contributionOut + hospitalSalesReport.SalesContribute
 			}
 		}
+
 
 		detail = append(detail, map[string]interface{}{
 			"hospitalLevel": "院外",
