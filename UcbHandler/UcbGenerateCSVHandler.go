@@ -3,6 +3,7 @@ package UcbHandler
 import (
 	"Ucb/UcbDaemons/UcbXmpp"
 	"Ucb/UcbDataStorage"
+	"Ucb/UcbModel"
 	"Ucb/Util/uuid"
 	"encoding/csv"
 	"encoding/json"
@@ -248,8 +249,10 @@ func (h UcbGenerateCSVHandler) csvDataOut(proposalId, accountId string, req api2
 	inputBody = [][]string{}
 
 	// 最新的paper
-	papers := paperStorage.GetAll(req, -1, -1)
-	paper := papers[len(papers) - 1]
+	//papers := paperStorage.GetAll(req, -1, -1)
+	//paper := papers[len(papers) - 1]
+
+	paper, _ := paperStorage.GetOne("5d10da63421aa9bc0dce3a81")
 
 	req.QueryParams["ids"] = paper.SalesReportIDs
 	salesReports := salesReportStorage.GetAll(req, -1, -1)
@@ -260,6 +263,7 @@ func (h UcbGenerateCSVHandler) csvDataOut(proposalId, accountId string, req api2
 		req.QueryParams["ids"] = salesReport.HospitalSalesReportIDs
 		req.QueryParams["notEq[destConfigId]"] = []string{"-1"}
 		hospitalSalesReports := hospitalSalesReportStorage.GetAll(req, -1, -1)
+		fmt.Println(len(hospitalSalesReports))
 		if len(salesReport.PaperInputID) > 0 {
 			paperInput, _ := paperInputStorage.GetOne(salesReport.PaperInputID)
 
@@ -268,32 +272,71 @@ func (h UcbGenerateCSVHandler) csvDataOut(proposalId, accountId string, req api2
 			req.QueryParams["ids"] = paperInput.BusinessinputIDs
 			businessInputs := businessInputStorage.GetAll(req, -1, -1)
 			for _, businessInput := range businessInputs {
-				for _, hospitalSalesReport := range hospitalSalesReports {
-					if hospitalSalesReport.DestConfigID == businessInput.DestConfigId {
-						destConfig, _ := destConfigStorage.GetOne(businessInput.DestConfigId)
-						hospitalConfig, _ := hospitalConfigStorage.GetOne(destConfig.DestID)
-						city, _ := cityStorage.GetOne(hospitalConfig.CityID)
-						hospital, _ := hospitalStorage.GetOne(hospitalConfig.HospitalID)
-						resourceConfig, _ := resourceConfigStorage.GetOne(businessInput.ResourceConfigId)
-						repConfig, _ := representativeConfigStorage.GetOne(resourceConfig.ResourceID)
-						rep, _ := representativeStorage.GetOne(repConfig.RepresentativeID)
+				var (
+					city UcbModel.City
+					hospital UcbModel.Hospital
+					rep UcbModel.Representative
+				)
+				destConfig, _ := destConfigStorage.GetOne(businessInput.DestConfigId)
+				hospitalConfig, _ := hospitalConfigStorage.GetOne(destConfig.DestID)
+				city, _ = cityStorage.GetOne(hospitalConfig.CityID)
+				hospital, _ = hospitalStorage.GetOne(hospitalConfig.HospitalID)
+				resourceConfig, _ := resourceConfigStorage.GetOne(businessInput.ResourceConfigId)
+				repConfig, _ := representativeConfigStorage.GetOne(resourceConfig.ResourceID)
+				rep, _ = representativeStorage.GetOne(repConfig.RepresentativeID)
 
-						req.QueryParams["ids"] = businessInput.GoodsInputIds
-						for _, goodsInput := range goodsInputStorage.GetAll(req, -1, -1) {
-							goodsConfig, _ := goodsConfigStorage.GetOne(goodsInput.GoodsConfigId)
-							productConfig, _ := productConfigStorage.GetOne(goodsConfig.GoodsID)
-							product, _ := productStorage.GetOne(productConfig.ProductID)
+				req.QueryParams["ids"] = businessInput.GoodsInputIds
+				for _, goodsInput := range goodsInputStorage.GetAll(req, -1, -1) {
+					goodsConfig, _ := goodsConfigStorage.GetOne(goodsInput.GoodsConfigId)
+					productConfig, _ := productConfigStorage.GetOne(goodsConfig.GoodsID)
+					product, _ := productStorage.GetOne(productConfig.ProductID)
 
-							content := []string{scenario.Name, city.Name, hospital.Name, hospital.HospitalLevel,
-								rep.Name, product.Name, hospitalSalesReport.DrugEntranceInfo,
-								strconv.Itoa(hospitalSalesReport.PatientCount),
-								strconv.FormatFloat(goodsInput.Budget, 'f', -1, 32),
-								strconv.FormatFloat(goodsInput.SalesTarget,'f', -1, 32)}
-							inputBody = append(inputBody, content)
+					drugEntranceInfo := ""
+					patientCount := 0
 
+					for _, hospitalSalesReport := range hospitalSalesReports {
+
+						if hospitalSalesReport.DestConfigID == businessInput.DestConfigId && hospitalSalesReport.GoodsConfigID == goodsInput.GoodsConfigId {
+							drugEntranceInfo = hospitalSalesReport.DrugEntranceInfo
+							patientCount = hospitalSalesReport.PatientCount
 						}
 					}
+					content := []string{scenario.Name, city.Name, hospital.Name, hospital.HospitalLevel,
+						rep.Name, product.Name, drugEntranceInfo,
+						strconv.Itoa(patientCount),
+						strconv.FormatFloat(goodsInput.Budget, 'f', -1, 32),
+						strconv.FormatFloat(goodsInput.SalesTarget,'f', -1, 32)}
+					inputBody = append(inputBody, content)
+
 				}
+
+				//for _, hospitalSalesReport := range hospitalSalesReports {
+				//	if hospitalSalesReport.DestConfigID == businessInput.DestConfigId {
+				//		destConfig, _ := destConfigStorage.GetOne(businessInput.DestConfigId)
+				//		hospitalConfig, _ := hospitalConfigStorage.GetOne(destConfig.DestID)
+				//		city, _ = cityStorage.GetOne(hospitalConfig.CityID)
+				//		hospital, _ = hospitalStorage.GetOne(hospitalConfig.HospitalID)
+				//		resourceConfig, _ := resourceConfigStorage.GetOne(businessInput.ResourceConfigId)
+				//		repConfig, _ := representativeConfigStorage.GetOne(resourceConfig.ResourceID)
+				//		rep, _ = representativeStorage.GetOne(repConfig.RepresentativeID)
+				//
+				//		req.QueryParams["ids"] = businessInput.GoodsInputIds
+				//		for _, goodsInput := range goodsInputStorage.GetAll(req, -1, -1) {
+				//			goodsConfig, _ := goodsConfigStorage.GetOne(goodsInput.GoodsConfigId)
+				//			productConfig, _ := productConfigStorage.GetOne(goodsConfig.GoodsID)
+				//			product, _ := productStorage.GetOne(productConfig.ProductID)
+				//
+				//			content := []string{scenario.Name, city.Name, hospital.Name, hospital.HospitalLevel,
+				//				rep.Name, product.Name, hospitalSalesReport.DrugEntranceInfo,
+				//				strconv.Itoa(hospitalSalesReport.PatientCount),
+				//				strconv.FormatFloat(goodsInput.Budget, 'f', -1, 32),
+				//				strconv.FormatFloat(goodsInput.SalesTarget,'f', -1, 32)}
+				//			inputBody = append(inputBody, content)
+				//
+				//		}
+				//	}
+				//
+				//}
 			}
 		}
 		for _, hospitalSalesReport :=  range hospitalSalesReports {
