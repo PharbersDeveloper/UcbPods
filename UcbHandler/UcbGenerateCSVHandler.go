@@ -134,69 +134,14 @@ func (h UcbGenerateCSVHandler) GenerateCSV(w http.ResponseWriter, r *http.Reques
 		return 1
 	}
 
-	//var (
-	//	resultMap map[string]interface{}
-	//)
-
 	if downloadType == "business" {
 		go func() {
 			h.csvDataOut(proposalId, accountId, req)
 		}()
-
-		//resultMap = h.csvDataOut(proposalId, accountId, scenarioId, req)
-		//businessInput := resultMap["input"].(map[string]interface{})
-		//businessInputHeader := businessInput["header"].([]string)
-		//businessInputBody := businessInput["body"].([][]string)
-		//
-		//businessReport := resultMap["report"].(map[string]interface{})
-		//businessReportHeader := businessReport["header"].([]string)
-		//businessReportBody := businessReport["body"].([][]string)
-		//
-		//var uid uuid.UUID
-		//uid, _ = uuid.NewRandom()
-		//inputFileName := fmt.Sprint(uid.String(), "_Input", ".csv")
-		//uid, _ = uuid.NewRandom()
-		//reportFileName := fmt.Sprint(uid.String(), "_SalesReport", ".csv")
-		//
-		//err := generateCsvFile(inputFileName, businessInputHeader, businessInputBody)
-		//if err != nil {
-		//	panic(err)
-		//}
-		//_ = generateCsvFile(reportFileName, businessReportHeader, businessReportBody)
-		//
-		//fileNames := []string{fmt.Sprint(h.Args[1], inputFileName), fmt.Sprint(h.Args[1], reportFileName)}
-		//
-		//result["status"] = "ok"
-		//result["fileNames"] = fileNames
-		//enc.Encode(result)
 	} else if downloadType == "assessment" {
 		go func() {
 			h.csvDataOut(proposalId, accountId, req)
 		}()
-		//resultMap = h.csvDataOut(proposalId, accountId, scenarioId, req)
-		//
-		//assessmentInput := resultMap["input"].(map[string]interface{})
-		//assessmentInputHeader := assessmentInput["header"].([]string)
-		//assessmentInputBody := assessmentInput["body"].([][]string)
-		//
-		//assessmentReport := resultMap["report"].(map[string]interface{})
-		//assessmentReportHeader := assessmentReport["header"].([]string)
-		//assessmentReportBody := assessmentReport["body"].([][]string)
-		//
-		//var uid uuid.UUID
-		//uid, _ = uuid.NewRandom()
-		//inputFileName := fmt.Sprint(uid.String(), "_Input", ".csv")
-		//uid, _ = uuid.NewRandom()
-		//reportFileName := fmt.Sprint(uid.String(), "_SalesReport", ".csv")
-		//
-		//_ = generateCsvFile(inputFileName, assessmentInputHeader, assessmentInputBody)
-		//_ = generateCsvFile(reportFileName, assessmentReportHeader, assessmentReportBody)
-		//
-		//fileNames := []string{fmt.Sprint(h.Args[1], inputFileName), fmt.Sprint(h.Args[1], reportFileName)}
-		//
-		//result["status"] = "ok"
-		//result["fileNames"] = fileNames
-		//enc.Encode(result)
 	}
 
 	result["status"] = "ok"
@@ -249,10 +194,11 @@ func (h UcbGenerateCSVHandler) csvDataOut(proposalId, accountId string, req api2
 	inputBody = [][]string{}
 
 	// 最新的paper
-	//papers := paperStorage.GetAll(req, -1, -1)
-	//paper := papers[len(papers) - 1]
+	papers := paperStorage.GetAll(req, -1, -1)
+	paper := papers[len(papers) - 1]
 
-	paper, _ := paperStorage.GetOne("5d10da63421aa9bc0dce3a81")
+	// TODO @Alex前后端需要重新对接
+	//paper, _ := paperStorage.GetOne("5d10da63421aa9bc0dce3a81")
 
 	req.QueryParams["ids"] = paper.SalesReportIDs
 	salesReports := salesReportStorage.GetAll(req, -1, -1)
@@ -309,34 +255,6 @@ func (h UcbGenerateCSVHandler) csvDataOut(proposalId, accountId string, req api2
 					inputBody = append(inputBody, content)
 
 				}
-
-				//for _, hospitalSalesReport := range hospitalSalesReports {
-				//	if hospitalSalesReport.DestConfigID == businessInput.DestConfigId {
-				//		destConfig, _ := destConfigStorage.GetOne(businessInput.DestConfigId)
-				//		hospitalConfig, _ := hospitalConfigStorage.GetOne(destConfig.DestID)
-				//		city, _ = cityStorage.GetOne(hospitalConfig.CityID)
-				//		hospital, _ = hospitalStorage.GetOne(hospitalConfig.HospitalID)
-				//		resourceConfig, _ := resourceConfigStorage.GetOne(businessInput.ResourceConfigId)
-				//		repConfig, _ := representativeConfigStorage.GetOne(resourceConfig.ResourceID)
-				//		rep, _ = representativeStorage.GetOne(repConfig.RepresentativeID)
-				//
-				//		req.QueryParams["ids"] = businessInput.GoodsInputIds
-				//		for _, goodsInput := range goodsInputStorage.GetAll(req, -1, -1) {
-				//			goodsConfig, _ := goodsConfigStorage.GetOne(goodsInput.GoodsConfigId)
-				//			productConfig, _ := productConfigStorage.GetOne(goodsConfig.GoodsID)
-				//			product, _ := productStorage.GetOne(productConfig.ProductID)
-				//
-				//			content := []string{scenario.Name, city.Name, hospital.Name, hospital.HospitalLevel,
-				//				rep.Name, product.Name, hospitalSalesReport.DrugEntranceInfo,
-				//				strconv.Itoa(hospitalSalesReport.PatientCount),
-				//				strconv.FormatFloat(goodsInput.Budget, 'f', -1, 32),
-				//				strconv.FormatFloat(goodsInput.SalesTarget,'f', -1, 32)}
-				//			inputBody = append(inputBody, content)
-				//
-				//		}
-				//	}
-				//
-				//}
 			}
 		}
 		for _, hospitalSalesReport :=  range hospitalSalesReports {
@@ -384,18 +302,6 @@ func (h UcbGenerateCSVHandler) csvDataOut(proposalId, accountId string, req api2
 	//fmt.Println(topic)
 	topic := "UCBDownLoad"
 	h.kafka.Produce(&topic, c)
-
-	//return map[string]interface{}{
-	//	"input": map[string]interface{}{
-	//		"header": inputHeader,
-	//		"body": inputBody,
-	//	},
-	//	"report": map[string]interface{}{
-	//		"header": reportHeader,
-	//		"body": reportBody,
-	//	},
-	//}
-
 }
 
 func generateCsvFile (fileName string, header []string, body [][]string) error {
@@ -516,11 +422,6 @@ func (bkc *cfg) GetConsumerInstance() (*kafka.Consumer, error) {
 	onceConsumer.Do(func() {
 		c, err := kafka.NewConsumer(&kafka.ConfigMap{
 			"bootstrap.servers": bkc.Broker,
-			// Avoid connecting to IPv6 brokers:
-			// This is needed for the ErrAllBrokersDown show-case below
-			// when using localhost brokers on OSX, since the OSX resolver
-			// will return the IPv6 addresses first.
-			// You typically don't need to specify this configuration property.
 			"broker.address.family":    "v4",
 			"group.id":                 bkc.Group,
 			"session.timeout.ms":       6000,
