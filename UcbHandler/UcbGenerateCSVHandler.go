@@ -1,6 +1,7 @@
 package UcbHandler
 
 import (
+	"Ucb/UcbDaemons/UcbXmpp"
 	"Ucb/UcbDataStorage"
 	"Ucb/Util/uuid"
 	"encoding/csv"
@@ -9,14 +10,24 @@ import (
 	"github.com/alfredyang1986/BmServiceDef/BmDaemons"
 	"github.com/alfredyang1986/BmServiceDef/BmDaemons/BmMongodb"
 	"github.com/alfredyang1986/BmServiceDef/BmDaemons/BmRedis"
+	bmconfig "github.com/alfredyang1986/blackmirror/bmconfighandle"
+	"github.com/alfredyang1986/blackmirror/bmerror"
+	"github.com/alfredyang1986/blackmirror/bmkafka"
+	"github.com/confluentinc/confluent-kafka-go/kafka"
 	"github.com/julienschmidt/httprouter"
 	"github.com/manyminds/api2go"
 	"io/ioutil"
 	"net/http"
 	"os"
+	"os/signal"
 	"reflect"
 	"strconv"
+	"sync"
+	"syscall"
+	"time"
 )
+
+var UcbGenerateCSV UcbGenerateCSVHandler
 
 type UcbGenerateCSVHandler struct {
 	Method     string
@@ -24,11 +35,20 @@ type UcbGenerateCSVHandler struct {
 	Args       []string
 	db         *BmMongodb.BmMongodb
 	rd         *BmRedis.BmRedis
+	xmpp	   *UcbXmpp.UcbXmpp
+	kafka 	   *bmkafka.BmKafkaConfig
+}
+
+type csvDataStruct struct {
+	Proposal   string              `json:"proposal-id"`
+	Account string                 `json:"account-id"`
+	Body       map[string]interface{} `json:"body"`
 }
 
 func (h UcbGenerateCSVHandler) NewGenerateCSVHandler(args ...interface{}) UcbGenerateCSVHandler {
 	var m *BmMongodb.BmMongodb
 	var r *BmRedis.BmRedis
+	var x *UcbXmpp.UcbXmpp
 	var hm string
 	var md string
 	var ag []string
@@ -44,6 +64,9 @@ func (h UcbGenerateCSVHandler) NewGenerateCSVHandler(args ...interface{}) UcbGen
 				if tm.Name() == "BmRedis" {
 					r = dm.(*BmRedis.BmRedis)
 				}
+				if tm.Name() == "UcbXmpp" {
+					x = dm.(*UcbXmpp.UcbXmpp)
+				}
 			}
 		} else if i == 1 {
 			md = arg.(string)
@@ -58,7 +81,16 @@ func (h UcbGenerateCSVHandler) NewGenerateCSVHandler(args ...interface{}) UcbGen
 		}
 	}
 
-	return UcbGenerateCSVHandler{Method: md, HttpMethod: hm, Args: ag, db: m, rd: r}
+	bmkafka, _ := bmkafka.GetConfigInstance()
+	kafka, _ := GetConfigInstance2()
+	UcbGenerateCSV = UcbGenerateCSVHandler{Method: md, HttpMethod: hm, Args: ag, db: m, rd: r, xmpp: x, kafka: bmkafka }
+
+	go func() {
+		topic := []string{"UCBDownLoad"}
+		fmt.Println(topic)
+		kafka.SubscribeTopics(topic, subscriptionGenerateFunc)
+	}()
+	return UcbGenerateCSV
 }
 
 func (h UcbGenerateCSVHandler) GenerateCSV(w http.ResponseWriter, r *http.Request, _ httprouter.Params) int {
@@ -78,7 +110,6 @@ func (h UcbGenerateCSVHandler) GenerateCSV(w http.ResponseWriter, r *http.Reques
 
 	proposalId, pok := params["proposal-id"]
 	accountId, aok := params["account-id"]
-	scenarioId, sok := params["scenario-id"]
 	downloadType, dok := params["download-type"]
 
 	if !pok {
@@ -95,13 +126,6 @@ func (h UcbGenerateCSVHandler) GenerateCSV(w http.ResponseWriter, r *http.Reques
 		return 1
 	}
 
-	if !sok {
-		result["status"] = "error"
-		result["msg"] = "生成失败，scenario-id参数缺失"
-		enc.Encode(result)
-		return 1
-	}
-
 	if !dok {
 		result["status"] = "error"
 		result["msg"] = "生成失败，download-type参数缺失"
@@ -109,65 +133,74 @@ func (h UcbGenerateCSVHandler) GenerateCSV(w http.ResponseWriter, r *http.Reques
 		return 1
 	}
 
-	var (
-		resultMap map[string]interface{}
-	)
+	//var (
+	//	resultMap map[string]interface{}
+	//)
 
 	if downloadType == "business" {
-		resultMap = h.csvDataOut(proposalId, accountId, scenarioId, req)
-		businessInput := resultMap["input"].(map[string]interface{})
-		businessInputHeader := businessInput["header"].([]string)
-		businessInputBody := businessInput["body"].([][]string)
+		go func() {
+			h.csvDataOut(proposalId, accountId, req)
+		}()
 
-		businessReport := resultMap["report"].(map[string]interface{})
-		businessReportHeader := businessReport["header"].([]string)
-		businessReportBody := businessReport["body"].([][]string)
-
-		var uid uuid.UUID
-		uid, _ = uuid.NewRandom()
-		inputFileName := fmt.Sprint(uid.String(), "_Input", ".csv")
-		uid, _ = uuid.NewRandom()
-		reportFileName := fmt.Sprint(uid.String(), "_SalesReport", ".csv")
-
-		err := generateCsvFile(inputFileName, businessInputHeader, businessInputBody)
-		if err != nil {
-			panic(err)
-		}
-		_ = generateCsvFile(reportFileName, businessReportHeader, businessReportBody)
-
-		fileNames := []string{fmt.Sprint(h.Args[1], inputFileName), fmt.Sprint(h.Args[1], reportFileName)}
-
-		result["status"] = "ok"
-		result["fileNames"] = fileNames
-		enc.Encode(result)
+		//resultMap = h.csvDataOut(proposalId, accountId, scenarioId, req)
+		//businessInput := resultMap["input"].(map[string]interface{})
+		//businessInputHeader := businessInput["header"].([]string)
+		//businessInputBody := businessInput["body"].([][]string)
+		//
+		//businessReport := resultMap["report"].(map[string]interface{})
+		//businessReportHeader := businessReport["header"].([]string)
+		//businessReportBody := businessReport["body"].([][]string)
+		//
+		//var uid uuid.UUID
+		//uid, _ = uuid.NewRandom()
+		//inputFileName := fmt.Sprint(uid.String(), "_Input", ".csv")
+		//uid, _ = uuid.NewRandom()
+		//reportFileName := fmt.Sprint(uid.String(), "_SalesReport", ".csv")
+		//
+		//err := generateCsvFile(inputFileName, businessInputHeader, businessInputBody)
+		//if err != nil {
+		//	panic(err)
+		//}
+		//_ = generateCsvFile(reportFileName, businessReportHeader, businessReportBody)
+		//
+		//fileNames := []string{fmt.Sprint(h.Args[1], inputFileName), fmt.Sprint(h.Args[1], reportFileName)}
+		//
+		//result["status"] = "ok"
+		//result["fileNames"] = fileNames
+		//enc.Encode(result)
 	} else if downloadType == "assessment" {
-		resultMap = h.csvDataOut(proposalId, accountId, scenarioId, req)
-
-		assessmentInput := resultMap["input"].(map[string]interface{})
-		assessmentInputHeader := assessmentInput["header"].([]string)
-		assessmentInputBody := assessmentInput["body"].([][]string)
-
-		assessmentReport := resultMap["report"].(map[string]interface{})
-		assessmentReportHeader := assessmentReport["header"].([]string)
-		assessmentReportBody := assessmentReport["body"].([][]string)
-
-		var uid uuid.UUID
-		uid, _ = uuid.NewRandom()
-		inputFileName := fmt.Sprint(uid.String(), "_Input", ".csv")
-		uid, _ = uuid.NewRandom()
-		reportFileName := fmt.Sprint(uid.String(), "_SalesReport", ".csv")
-
-		_ = generateCsvFile(inputFileName, assessmentInputHeader, assessmentInputBody)
-		_ = generateCsvFile(reportFileName, assessmentReportHeader, assessmentReportBody)
-
-		fileNames := []string{fmt.Sprint(h.Args[1], inputFileName), fmt.Sprint(h.Args[1], reportFileName)}
-
-		result["status"] = "ok"
-		result["fileNames"] = fileNames
-		enc.Encode(result)
+		go func() {
+			h.csvDataOut(proposalId, accountId, req)
+		}()
+		//resultMap = h.csvDataOut(proposalId, accountId, scenarioId, req)
+		//
+		//assessmentInput := resultMap["input"].(map[string]interface{})
+		//assessmentInputHeader := assessmentInput["header"].([]string)
+		//assessmentInputBody := assessmentInput["body"].([][]string)
+		//
+		//assessmentReport := resultMap["report"].(map[string]interface{})
+		//assessmentReportHeader := assessmentReport["header"].([]string)
+		//assessmentReportBody := assessmentReport["body"].([][]string)
+		//
+		//var uid uuid.UUID
+		//uid, _ = uuid.NewRandom()
+		//inputFileName := fmt.Sprint(uid.String(), "_Input", ".csv")
+		//uid, _ = uuid.NewRandom()
+		//reportFileName := fmt.Sprint(uid.String(), "_SalesReport", ".csv")
+		//
+		//_ = generateCsvFile(inputFileName, assessmentInputHeader, assessmentInputBody)
+		//_ = generateCsvFile(reportFileName, assessmentReportHeader, assessmentReportBody)
+		//
+		//fileNames := []string{fmt.Sprint(h.Args[1], inputFileName), fmt.Sprint(h.Args[1], reportFileName)}
+		//
+		//result["status"] = "ok"
+		//result["fileNames"] = fileNames
+		//enc.Encode(result)
 	}
 
-
+	result["status"] = "ok"
+	result["msg"] = "正在生成数据"
+	enc.Encode(result)
 	return 0
 }
 
@@ -179,7 +212,7 @@ func (h UcbGenerateCSVHandler) GetHandlerMethod() string {
 	return h.Method
 }
 
-func (h UcbGenerateCSVHandler) csvDataOut(proposalId, accountId, scenarioId string, req api2go.Request) map[string]interface{} {
+func (h UcbGenerateCSVHandler) csvDataOut(proposalId, accountId string, req api2go.Request) { // map[string]interface{}
 	mdb := []BmDaemons.BmDaemon{h.db}
 	scenarioStorage := UcbDataStorage.UcbScenarioStorage{}.NewScenarioStorage(mdb)
 	paperStorage := UcbDataStorage.UcbPaperStorage{}.NewPaperStorage(mdb)
@@ -211,6 +244,8 @@ func (h UcbGenerateCSVHandler) csvDataOut(proposalId, accountId, scenarioId stri
 		inputBody [][]string
 		reportBody [][]string
 	)
+
+	inputBody = [][]string{}
 
 	// 最新的paper
 	papers := paperStorage.GetAll(req, -1, -1)
@@ -281,16 +316,42 @@ func (h UcbGenerateCSVHandler) csvDataOut(proposalId, accountId, scenarioId stri
 		}
 	}
 
-	return map[string]interface{}{
-		"input": map[string]interface{}{
-			"header": inputHeader,
-			"body": inputBody,
-		},
-		"report": map[string]interface{}{
-			"header": reportHeader,
-			"body": reportBody,
+
+	res := map[string]interface{}{
+		"proposal-id": proposalId,
+		"account-id": accountId,
+		"body": map[string]interface{}{
+			"input": map[string]interface{}{
+				"header": inputHeader,
+				"body": inputBody,
+			},
+			"report": map[string]interface{}{
+				"header": reportHeader,
+				"body": reportBody,
+			},
 		},
 	}
+
+	c, _ := json.Marshal(res)
+
+	fmt.Println(string(c))
+
+
+	//topic := h.kafka.Topics[0]
+	//fmt.Println(topic)
+	topic := "UCBDownLoad"
+	h.kafka.Produce(&topic, c)
+
+	//return map[string]interface{}{
+	//	"input": map[string]interface{}{
+	//		"header": inputHeader,
+	//		"body": inputBody,
+	//	},
+	//	"report": map[string]interface{}{
+	//		"header": reportHeader,
+	//		"body": reportBody,
+	//	},
+	//}
 
 }
 
@@ -317,4 +378,202 @@ func generateCsvFile (fileName string, header []string, body [][]string) error {
 	err = w.WriteAll(data)
 	w.Flush()
 	return err
+}
+
+func subscriptionGenerateFunc(content interface{}) {
+	var csvData csvDataStruct
+
+	h := UcbGenerateCSV
+	result := map[string]interface{}{}
+	result["client-id"] = "5cbe7ab8f4ce4352ecb082a3"
+	result["type"] = "download"
+	result["time"] = strconv.FormatInt(time.Now().Unix(), 10)
+
+	c := content.([]byte)
+	err := json.Unmarshal(c, &csvData)
+	result["account-id"] = csvData.Account
+
+	businessInput := csvData.Body["input"].(map[string]interface{})
+	businessInputHeader := businessInput["header"].([]interface{})
+	businessInputBody := businessInput["body"].(interface{})
+
+	businessReport := csvData.Body["report"].(map[string]interface{})
+	businessReportHeader := businessReport["header"].([]interface{})
+	businessReportBody := businessReport["body"].(interface{})
+
+	var (
+		uid uuid.UUID
+		tempInputHeader []string
+		tempInputBody [][]string
+		tempReportHeader []string
+		tempReportBody [][]string
+	)
+	uid, _ = uuid.NewRandom()
+	inputFileName := fmt.Sprint(uid.String(), "_Input", ".csv")
+	uid, _ = uuid.NewRandom()
+	reportFileName := fmt.Sprint(uid.String(), "_SalesReport", ".csv")
+
+	for _, v := range businessInputHeader {
+		tempInputHeader = append(tempInputHeader, v.(string))
+	}
+
+	for _, v := range businessReportHeader {
+		tempReportHeader = append(tempReportHeader, v.(string))
+	}
+
+	for _, v := range businessInputBody.([]interface{}) {
+		var body []string
+		for _, vv := range v.([]interface{}) {
+			body = append(body, vv.(string))
+		}
+		tempInputBody = append(tempInputBody, body)
+	}
+
+	for _, v := range businessReportBody.([]interface{}) {
+		var body []string
+		for _, vv := range v.([]interface{}) {
+			body = append(body, vv.(string))
+		}
+		tempReportBody = append(tempReportBody, body)
+	}
+
+	err = generateCsvFile(inputFileName, tempInputHeader, tempInputBody)
+	err = generateCsvFile(reportFileName, tempReportHeader, tempReportBody)
+
+	if err != nil {
+		result["status"] = "no"
+		result["msg"] = "生成文件失败"
+		result["fileNames"] = []string{}
+		r, _ := json.Marshal(result)
+		_ = h.xmpp.SendGroupMsg(h.Args[2], string(r))
+	} else {
+		fileNames := []string{fmt.Sprint(h.Args[1], inputFileName), fmt.Sprint(h.Args[1], reportFileName)}
+		result["status"] = "ok"
+		result["msg"] = "生成文件成功"
+		result["fileNames"] = fileNames
+		r, _ := json.Marshal(result)
+		fmt.Println(result)
+		_ = h.xmpp.SendGroupMsg(h.Args[2], string(r))
+	}
+}
+
+
+/**
+ * 一坨屎，不要看，等老铁把Kafka改成多实例在改回来，现在Consumer在一个项目中不能创建多个
+ */
+type cfg bmkafka.BmKafkaConfig
+var e error
+var onceConfig sync.Once
+var config *cfg
+var consumer *kafka.Consumer
+var onceConsumer sync.Once
+
+// GetConsumerInstance get one KafkaConsumerInstance.
+func (bkc *cfg) GetConsumerInstance() (*kafka.Consumer, error) {
+	onceConsumer.Do(func() {
+		c, err := kafka.NewConsumer(&kafka.ConfigMap{
+			"bootstrap.servers": bkc.Broker,
+			// Avoid connecting to IPv6 brokers:
+			// This is needed for the ErrAllBrokersDown show-case below
+			// when using localhost brokers on OSX, since the OSX resolver
+			// will return the IPv6 addresses first.
+			// You typically don't need to specify this configuration property.
+			"broker.address.family":    "v4",
+			"group.id":                 bkc.Group,
+			"session.timeout.ms":       6000,
+			//"auto.offset.reset":        "earliest",
+			"auto.offset.reset":        "latest",
+			"security.protocol":        "SSL", //默认使用SSL
+			"ssl.ca.location":          bkc.CaLocation,
+			"ssl.certificate.location": bkc.CaSignedLocation,
+			"ssl.key.location":         bkc.SslKeyLocation,
+			"ssl.key.password":         bkc.Pass,
+		})
+
+		if err != nil {
+			fmt.Printf("Failed to create consumer: %s\n", err)
+			e = err
+		} else {
+			fmt.Printf("Created Consumer %v\n", c)
+			consumer = c
+			e = nil
+		}
+
+		//err = c.SubscribeTopics(bkc.Topics, nil)
+
+	})
+	return consumer, e
+}
+
+func GetConfigInstance2() (*cfg, error) {
+	onceConfig.Do(func() {
+		configPath := os.Getenv("BM_KAFKA_CONF_HOME")
+		profileItems := bmconfig.BMGetConfigMap(configPath)
+		topics := make([]string, 0)
+		for _, t := range profileItems["Topics"].([]interface{}) {
+			topics = append(topics, t.(string))
+		}
+		config = &cfg {
+			Broker:              profileItems["Broker"].(string),
+			SchemaRepositoryUrl: profileItems["SchemaRepositoryUrl"].(string),
+			Group:               profileItems["Group"].(string),
+			CaLocation:          profileItems["CaLocation"].(string),
+			CaSignedLocation:    profileItems["CaSignedLocation"].(string),
+			SslKeyLocation:      profileItems["SslKeyLocation"].(string),
+			Pass:                profileItems["Pass"].(string),
+			Topics:              topics,
+		}
+		e = nil
+	})
+	return config, e
+}
+
+
+func (bkc *cfg) SubscribeTopics(topics []string, subscribeFunc func(interface{})) {
+	if len(bkc.Topics) == 0 {
+		panic("no Topics in config")
+	}
+	c, err := bkc.GetConsumerInstance()
+	bmerror.PanicError(err)
+	if len(topics) == 0 {
+		err = c.SubscribeTopics(bkc.Topics, nil)
+	} else {
+		err = c.SubscribeTopics(topics, nil)
+	}
+	bmerror.PanicError(err)
+
+	run := true
+	sigchan := make(chan os.Signal, 1)
+	signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)
+
+	for run == true {
+		select {
+		case sig := <-sigchan:
+			fmt.Printf("Caught signal %v: terminating\n", sig)
+			run = false
+		default:
+			ev := c.Poll(100)
+			if ev == nil {
+				continue
+			}
+
+			switch e := ev.(type) {
+			case *kafka.Message:
+				subscribeFunc(e.Value)
+				if e.Headers != nil {
+					fmt.Printf("%% Headers: %v\n", e.Headers)
+				}
+			case kafka.Error:
+				fmt.Fprintf(os.Stderr, "%% Error: %v: %v\n", e.Code(), e)
+				if e.Code() == kafka.ErrAllBrokersDown {
+					run = false
+				}
+			default:
+				continue
+			}
+		}
+	}
+
+	fmt.Printf("Closing consumer\n")
+	c.Close()
 }

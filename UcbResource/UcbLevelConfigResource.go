@@ -19,6 +19,7 @@ type UcbLevelConfigResource struct {
 	UcbManageTimeResultStorage			*UcbDataStorage.UcbManageTimeResultStorage
 	UcbManageTeamResultStorage			*UcbDataStorage.UcbManageTeamResultStorage
 	UcbGeneralPerformanceResultStorage	*UcbDataStorage.UcbGeneralPerformanceResultStorage
+	UcbSimplifyResultStorage			*UcbDataStorage.UcbSimplifyResultStorage
 }
 
 func (c UcbLevelConfigResource) NewLevelConfigResource(args []BmDataStorage.BmStorage) *UcbLevelConfigResource {
@@ -29,6 +30,7 @@ func (c UcbLevelConfigResource) NewLevelConfigResource(args []BmDataStorage.BmSt
 	var mtr *UcbDataStorage.UcbManageTimeResultStorage
 	var mtrs *UcbDataStorage.UcbManageTeamResultStorage
 	var gpr *UcbDataStorage.UcbGeneralPerformanceResultStorage
+	var srs *UcbDataStorage.UcbSimplifyResultStorage
 
 	for _, arg := range args {
 		tp := reflect.ValueOf(arg).Elem().Type()
@@ -46,6 +48,8 @@ func (c UcbLevelConfigResource) NewLevelConfigResource(args []BmDataStorage.BmSt
 			mtrs = arg.(*UcbDataStorage.UcbManageTeamResultStorage)
 		} else if tp.Name() == "UcbGeneralPerformanceResultStorage" {
 			gpr = arg.(*UcbDataStorage.UcbGeneralPerformanceResultStorage)
+		} else if tp.Name() == "UcbSimplifyResultStorage" {
+			srs = arg.(*UcbDataStorage.UcbSimplifyResultStorage)
 		}
 	}
 	return &UcbLevelConfigResource{
@@ -56,6 +60,7 @@ func (c UcbLevelConfigResource) NewLevelConfigResource(args []BmDataStorage.BmSt
 		UcbManageTimeResultStorage: mtr,
 		UcbManageTeamResultStorage: mtrs,
 		UcbGeneralPerformanceResultStorage: gpr,
+		UcbSimplifyResultStorage: srs,
 	}
 }
 
@@ -68,6 +73,7 @@ func (c UcbLevelConfigResource) FindAll(r api2go.Request) (api2go.Responder, err
 	manageTimeResultsID, mtrOk := r.QueryParams["manageTimeResultsID"]
 	manageTeamResultsID, mtrsOk := r.QueryParams["manageTeamResultsID"]
 	generalPerformanceResultsID, gprOk := r.QueryParams["generalPerformanceResultsID"]
+	simplifyResultsID, srOk := r.QueryParams["simplifyResultsID"]
 
 	if rdrOk {
 		modelRootID := regionalDivisionResultsID[0]
@@ -147,6 +153,21 @@ func (c UcbLevelConfigResource) FindAll(r api2go.Request) (api2go.Responder, err
 	if gprOk {
 		modelRootID := generalPerformanceResultsID[0]
 		modelRoot, err := c.UcbGeneralPerformanceResultStorage.GetOne(modelRootID)
+		if err != nil {
+			return &Response{}, nil
+		}
+
+		model, err:= c.UcbLevelConfigStorage.GetOne(modelRoot.LevelConfigID)
+
+		if err != nil {
+			return &Response{}, nil
+		}
+		return &Response{Res: model}, nil
+	}
+
+	if srOk {
+		modelRootID := simplifyResultsID[0]
+		modelRoot, err := c.UcbSimplifyResultStorage.GetOne(modelRootID)
 		if err != nil {
 			return &Response{}, nil
 		}

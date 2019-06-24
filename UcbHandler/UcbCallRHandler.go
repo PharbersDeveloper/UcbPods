@@ -413,10 +413,12 @@ func subscriptionFunc(content interface{}) {
 
 	ctx := map[string]string {
 		"client-id": "5cbe7ab8f4ce4352ecb082a3",
+		"type": "calc",
 		"account-id": result.Account,
 		"proposal-id": result.Proposal,
 		"paperInput-id": result.PaperInput,
 		"scenario-id": result.Scenario,
+		"time": strconv.FormatInt(time.Now().Unix(), 10),
 	}
 
 	if err != nil ||  result.Error != nil{
@@ -557,7 +559,7 @@ func subscriptionFunc(content interface{}) {
 				assessmentReport := UcbModel.AssessmentReport {
 					SimplifyResultID: simplifyResultID,
 					ScenarioID: result.Scenario,
-					Time: time.Now().UnixNano(),
+					Time: time.Now().Unix(),
 					PaperInputID: result.PaperInput,
 				}
 
