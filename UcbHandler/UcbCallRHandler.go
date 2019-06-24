@@ -15,7 +15,6 @@ import (
 	"github.com/mitchellh/mapstructure"
 	"io/ioutil"
 	"net/http"
-	"os"
 	"reflect"
 	"strconv"
 	"time"
@@ -30,6 +29,7 @@ type UcbCallRHandler struct {
 	db         *BmMongodb.BmMongodb
 	rd         *BmRedis.BmRedis
 	xmpp	   *UcbXmpp.UcbXmpp
+	kafka 	   *bmkafka.BmKafkaConfig
 }
 
 type calcStruct struct {
@@ -87,14 +87,13 @@ func (h UcbCallRHandler) NewCallRHandler(args ...interface{}) UcbCallRHandler {
 		} else {
 		}
 	}
+	kafka, _ := bmkafka.GetConfigInstance()
+	UcbCallR = UcbCallRHandler{ Method: md, HttpMethod: hm, Args: ag, db: m, rd: r, xmpp: x, kafka: kafka }
 	go func() {
-		//env := os.Getenv("BM_KAFKA_CONF_HOME") + "/resource/kafkaconfig.json"
-		//os.Setenv("BM_KAFKA_CONF_HOME", env)
-		kafka, _ := bmkafka.GetConfigInstance()
 		topic := kafka.Topics[len(kafka.Topics) -1:]
+		fmt.Println(topic)
 		kafka.SubscribeTopics(topic, subscriptionFunc)
 	}()
-	UcbCallR = UcbCallRHandler{ Method: md, HttpMethod: hm, Args: ag, db: m, rd: r, xmpp: x }
 	return UcbCallR
 }
 
@@ -369,14 +368,10 @@ func (h UcbCallRHandler) CallRCalculate(w http.ResponseWriter, r *http.Request, 
 
 	fmt.Println(string(c))
 
-	env := os.Getenv("BM_KAFKA_CONF_HOME") + "/resource/kafkaconfig.json"
-	os.Setenv("BM_KAFKA_CONF_HOME", env)
-	kafka, err := bmkafka.GetConfigInstance()
-	if err != nil {
-		panic(err)
-	}
-	topic := kafka.Topics[0]
-	kafka.Produce(&topic, c)
+
+	topic := h.kafka.Topics[0]
+	fmt.Println(topic)
+	h.kafka.Produce(&topic, c)
 
 	result["status"] = "ok"
 	result["msg"] = "正在计算"
@@ -592,8 +587,5 @@ func subscriptionFunc(content interface{}) {
 			fmt.Println(string(r))
 			_ = h.xmpp.SendGroupMsg(h.Args[0], string(r))
 		}
-
 	}
-
-
 }
