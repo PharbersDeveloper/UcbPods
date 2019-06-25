@@ -18,7 +18,7 @@ type UcbImageResource struct {
 	UcbRegionStorage         *UcbDataStorage.UcbRegionStorage
 	UcbRepresentativeStorage *UcbDataStorage.UcbRepresentativeStorage
 	UcbLevelStorage	 		 *UcbDataStorage.UcbLevelStorage
-	UcbTitleStorage			 *UcbDataStorage.UcbTitleStorage
+	UcbEvaluationStorage			 *UcbDataStorage.UcbEvaluationStorage
 }
 
 func (c UcbImageResource) NewImageResource(args []BmDataStorage.BmStorage) *UcbImageResource {
@@ -28,7 +28,7 @@ func (c UcbImageResource) NewImageResource(args []BmDataStorage.BmStorage) *UcbI
 	var rs *UcbDataStorage.UcbRegionStorage
 	var rt *UcbDataStorage.UcbRepresentativeStorage
 	var ls *UcbDataStorage.UcbLevelStorage
-	var ts *UcbDataStorage.UcbTitleStorage
+	var ts *UcbDataStorage.UcbEvaluationStorage
 
 	for _, arg := range args {
 		tp := reflect.ValueOf(arg).Elem().Type()
@@ -44,8 +44,8 @@ func (c UcbImageResource) NewImageResource(args []BmDataStorage.BmStorage) *UcbI
 			rt = arg.(*UcbDataStorage.UcbRepresentativeStorage)
 		} else if tp.Name() == "UcbLevelStorage" {
 			ls = arg.(*UcbDataStorage.UcbLevelStorage)
-		} else if tp.Name() == "UcbTitleStorage" {
-			ts = arg.(*UcbDataStorage.UcbTitleStorage)
+		} else if tp.Name() == "UcbEvaluationStorage" {
+			ts = arg.(*UcbDataStorage.UcbEvaluationStorage)
 		}
 	}
 	return &UcbImageResource{
@@ -55,7 +55,7 @@ func (c UcbImageResource) NewImageResource(args []BmDataStorage.BmStorage) *UcbI
 		UcbRegionStorage:         rs,
 		UcbRepresentativeStorage: rt,
 		UcbLevelStorage: 		  ls,
-		UcbTitleStorage:      	  ts,
+		UcbEvaluationStorage:      	  ts,
 	}
 }
 
@@ -111,7 +111,7 @@ func (c UcbImageResource) FindAll(r api2go.Request) (api2go.Responder, error) {
 		return  &Response{Res: model}, nil
 	} else if tok {
 		modelRootID := titlesID[0]
-		modelRoot, err := c.UcbTitleStorage.GetOne(modelRootID)
+		modelRoot, err := c.UcbEvaluationStorage.GetOne(modelRootID)
 		if err != nil {
 			return &Response{}, err
 		}

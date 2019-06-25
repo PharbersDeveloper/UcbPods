@@ -137,6 +137,7 @@ func (s UcbPaperResource) NewPaperResource (args []BmDataStorage.BmStorage) *Ucb
 
 func (s UcbPaperResource) FindAll(r api2go.Request) (api2go.Responder, error) {
 	chartType, ctOk := r.QueryParams["chart-type"]
+	_, qok := r.QueryParams["query-type"]
 
 	if ctOk && chartType[0] == "product-compete-line" { // 前端应该有以前写好的function，直接返回数据前端展示
 		return s.productCompeteLine(r)
@@ -148,6 +149,17 @@ func (s UcbPaperResource) FindAll(r api2go.Request) (api2go.Responder, error) {
 		return s.representativeSalesReportSummary(r)
 	} else if ctOk && chartType[0] == "hospital-sales-report-summary" { // 处理医院报告饼状图数据
 		return s.representativeSalesReportSummary(r)
+	}
+
+	if qok {
+		var result []*UcbModel.Paper
+		result = []*UcbModel.Paper{}
+		for _, model := range s.UcbPaperStorage.GetAll(r, -1, -1) {
+			if len(model.AssessmentReportIDs) > 0 {
+				result = append(result, model)
+			}
+		}
+		return &Response{Res: result}, nil
 	}
 
 	result := s.UcbPaperStorage.GetAll(r, -1, -1)

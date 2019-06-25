@@ -83,7 +83,7 @@ func (h UcbGeneratePaperHandler) GeneratePaper(w http.ResponseWriter, r *http.Re
 			Name: proposalModel.Name,
 			Describe: proposalModel.Describe,
 			TotalPhase: proposalModel.TotalPhase,
-			StartTime: time.Now().Unix(),
+			StartTime: time.Now().Unix() / 1e6,
 			EndTime: 0,
 			InputState: 0,
 			InputIDs: proposalModel.InputIDs,

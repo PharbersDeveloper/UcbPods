@@ -6,7 +6,7 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
-type Title struct {
+type Evaluation struct {
 	ID               string        `json:"-"`
 	Id_              bson.ObjectId `json:"-" bson:"_id"`
 	Value            string        `json:"value" bson:"value"`
@@ -15,16 +15,16 @@ type Title struct {
 	Img      		 *Image 	   `json:"-"`
 }
 
-func (c Title) GetID() string {
+func (c Evaluation) GetID() string {
 	return c.ID
 }
 
-func (c Title) SetID(id string) error {
+func (c Evaluation) SetID(id string) error {
 	c.ID = id
 	return nil
 }
 
-func (c Title) GetReferences() []jsonapi.Reference {
+func (c Evaluation) GetReferences() []jsonapi.Reference {
 	return []jsonapi.Reference{
 		{
 			Type: "images",
@@ -33,7 +33,7 @@ func (c Title) GetReferences() []jsonapi.Reference {
 	}
 }
 
-func (c Title) GetReferencedIDs() []jsonapi.ReferenceID {
+func (c Evaluation) GetReferencedIDs() []jsonapi.ReferenceID {
 	result := []jsonapi.ReferenceID{}
 
 	if c.ImagesID != "" {
@@ -47,7 +47,7 @@ func (c Title) GetReferencedIDs() []jsonapi.ReferenceID {
 	return result
 }
 
-func (c *Title) SetToOneReferenceID(name, ID string) error {
+func (c *Evaluation) SetToOneReferenceID(name, ID string) error {
 	if name == "image" {
 		c.ImagesID = ID
 		return nil
@@ -56,7 +56,7 @@ func (c *Title) SetToOneReferenceID(name, ID string) error {
 	return errors.New("There is no to-one relationship with the name " + name)
 }
 
-func (c Title) GetReferencedStructs() []jsonapi.MarshalIdentifier {
+func (c Evaluation) GetReferencedStructs() []jsonapi.MarshalIdentifier {
 	result := []jsonapi.MarshalIdentifier{}
 
 	if c.ImagesID != "" && c.Img != nil {
@@ -67,7 +67,7 @@ func (c Title) GetReferencedStructs() []jsonapi.MarshalIdentifier {
 
 
 
-func (c *Title) GetConditionsBsonM(parameters map[string][]string) bson.M {
+func (c *Evaluation) GetConditionsBsonM(parameters map[string][]string) bson.M {
 	rst := make(map[string]interface{})
 	for k, v := range parameters {
 		switch k {

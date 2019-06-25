@@ -515,7 +515,7 @@ func subscriptionFunc(content interface{}) {
 			salesReportID := salesReportStorage.Insert(UcbModel.SalesReport{
 				ScenarioID: result.Scenario,
 				PaperInputID: result.PaperInput,
-				Time: time.Now().UnixNano(),
+				Time: time.Now().Unix() / 1e6,
 				HospitalSalesReportIDs: hospitalSalesReportIDs,
 				ProductSalesReportIDs: productSalesReportIDs,
 				RepresentativeSalesReportIDs: representativeSalesReportIDs,
@@ -559,7 +559,7 @@ func subscriptionFunc(content interface{}) {
 				assessmentReport := UcbModel.AssessmentReport {
 					SimplifyResultID: simplifyResultID,
 					ScenarioID: result.Scenario,
-					Time: time.Now().Unix(),
+					Time: time.Now().Unix() / 1e6,
 					PaperInputID: result.PaperInput,
 				}
 

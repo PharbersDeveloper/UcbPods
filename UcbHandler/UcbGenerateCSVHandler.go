@@ -87,7 +87,7 @@ func (h UcbGenerateCSVHandler) NewGenerateCSVHandler(args ...interface{}) UcbGen
 	UcbGenerateCSV = UcbGenerateCSVHandler{Method: md, HttpMethod: hm, Args: ag, db: m, rd: r, xmpp: x, kafka: bmkafka }
 
 	go func() {
-		topic := []string{"UCBDownLoad"}
+		topic := []string{"UCBDownLoadTest"}
 		fmt.Println(topic)
 		kafka.SubscribeTopics(topic, subscriptionGenerateFunc)
 	}()
@@ -109,13 +109,13 @@ func (h UcbGenerateCSVHandler) GenerateCSV(w http.ResponseWriter, r *http.Reques
 	//	panic(fmt.Sprintf(err.Error()))
 	//}
 
-	proposalId, pok := params["proposal-id"]
+	paperId, pok := params["paper-id"]
 	accountId, aok := params["account-id"]
 	downloadType, dok := params["download-type"]
 
 	if !pok {
 		result["status"] = "error"
-		result["msg"] = "生成失败，proposal-id参数缺失"
+		result["msg"] = "生成失败，paper-id参数缺失"
 		enc.Encode(result)
 		return 1
 	}
@@ -126,7 +126,6 @@ func (h UcbGenerateCSVHandler) GenerateCSV(w http.ResponseWriter, r *http.Reques
 		enc.Encode(result)
 		return 1
 	}
-
 	if !dok {
 		result["status"] = "error"
 		result["msg"] = "生成失败，download-type参数缺失"
@@ -136,11 +135,11 @@ func (h UcbGenerateCSVHandler) GenerateCSV(w http.ResponseWriter, r *http.Reques
 
 	if downloadType == "business" {
 		go func() {
-			h.csvDataOut(proposalId, accountId, req)
+			h.csvDataOut(paperId, accountId, req)
 		}()
 	} else if downloadType == "assessment" {
 		go func() {
-			h.csvDataOut(proposalId, accountId, req)
+			h.csvDataOut(paperId, accountId, req)
 		}()
 	}
 
@@ -158,7 +157,7 @@ func (h UcbGenerateCSVHandler) GetHandlerMethod() string {
 	return h.Method
 }
 
-func (h UcbGenerateCSVHandler) csvDataOut(proposalId, accountId string, req api2go.Request) { // map[string]interface{}
+func (h UcbGenerateCSVHandler) csvDataOut(paperId, accountId string, req api2go.Request) { // map[string]interface{}
 	mdb := []BmDaemons.BmDaemon{h.db}
 	scenarioStorage := UcbDataStorage.UcbScenarioStorage{}.NewScenarioStorage(mdb)
 	paperStorage := UcbDataStorage.UcbPaperStorage{}.NewPaperStorage(mdb)
@@ -179,10 +178,6 @@ func (h UcbGenerateCSVHandler) csvDataOut(proposalId, accountId string, req api2
 	salesReportStorage := UcbDataStorage.UcbSalesReportStorage{}.NewSalesReportStorage(mdb)
 	hospitalSalesReportStorage := UcbDataStorage.UcbHospitalSalesReportStorage{}.NewHospitalSalesReportStorage(mdb)
 
-	req.QueryParams["account-id"] = []string{accountId}
-	req.QueryParams["proposal-id"] = []string{proposalId}
-	req.QueryParams["orderby"] = []string{"time"}
-
 	inputHeader := []string {"时间", "城市名称", "医院名称", "医院等级", "负责代表", "产品", "进药状态", "患者数量", "指标", "预算"}
 	reportHeader := []string {"时间", "城市名称", "医院名称", "医院等级", "负责代表", "产品", "进药状态", "患者数量", "指标达成率", "销量"}
 
@@ -194,11 +189,11 @@ func (h UcbGenerateCSVHandler) csvDataOut(proposalId, accountId string, req api2
 	inputBody = [][]string{}
 
 	// 最新的paper
-	papers := paperStorage.GetAll(req, -1, -1)
-	paper := papers[len(papers) - 1]
+	//papers := paperStorage.GetAll(req, -1, -1)
+	//paper := papers[len(papers) - 1]
 
 	// TODO @Alex前后端需要重新对接
-	//paper, _ := paperStorage.GetOne("5d10da63421aa9bc0dce3a81")
+	paper, _ := paperStorage.GetOne(paperId)
 
 	req.QueryParams["ids"] = paper.SalesReportIDs
 	salesReports := salesReportStorage.GetAll(req, -1, -1)
@@ -279,7 +274,6 @@ func (h UcbGenerateCSVHandler) csvDataOut(proposalId, accountId string, req api2
 
 
 	res := map[string]interface{}{
-		"proposal-id": proposalId,
 		"account-id": accountId,
 		"body": map[string]interface{}{
 			"input": map[string]interface{}{
@@ -300,7 +294,7 @@ func (h UcbGenerateCSVHandler) csvDataOut(proposalId, accountId string, req api2
 
 	//topic := h.kafka.Topics[0]
 	//fmt.Println(topic)
-	topic := "UCBDownLoad"
+	topic := "UCBDownLoadTest"
 	h.kafka.Produce(&topic, c)
 }
 
@@ -336,7 +330,7 @@ func subscriptionGenerateFunc(content interface{}) {
 	result := map[string]interface{}{}
 	result["client-id"] = "5cbe7ab8f4ce4352ecb082a3"
 	result["type"] = "download"
-	result["time"] = strconv.FormatInt(time.Now().Unix(), 10)
+	result["time"] = strconv.FormatInt(time.Now().Unix() / 1e6, 10)
 
 	c := content.([]byte)
 	err := json.Unmarshal(c, &csvData)
