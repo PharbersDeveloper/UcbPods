@@ -83,13 +83,13 @@ func (h UcbGeneratePaperHandler) GeneratePaper(w http.ResponseWriter, r *http.Re
 			Name: proposalModel.Name,
 			Describe: proposalModel.Describe,
 			TotalPhase: proposalModel.TotalPhase,
-			StartTime: time.Now().Unix() / 1e6,
+			StartTime: time.Now().UnixNano() / 1e6,
 			EndTime: 0,
 			InputState: 0,
 			InputIDs: proposalModel.InputIDs,
 			SalesReportIDs: proposalModel.SalesReportIDs,
 			PersonnelAssessmentIDs: proposalModel.PersonnelAssessmentIDs,
-			Time: time.Now().UnixNano(),
+			Time: time.Now().UnixNano() / 1e6,
 		}
 
 		return UcbDataStorage.UcbPaperStorage{}.NewPaperStorage(mdb).Insert(paperModel)

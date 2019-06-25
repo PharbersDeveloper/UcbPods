@@ -87,13 +87,16 @@ func (h UcbCallRHandler) NewCallRHandler(args ...interface{}) UcbCallRHandler {
 		} else {
 		}
 	}
+
 	kafka, _ := bmkafka.GetConfigInstance()
 	UcbCallR = UcbCallRHandler{ Method: md, HttpMethod: hm, Args: ag, db: m, rd: r, xmpp: x, kafka: kafka }
+
 	go func() {
-		topic := kafka.Topics[len(kafka.Topics) -1:]
+		topic := []string{kafka.Topics[len(kafka.Topics) -2]}
 		fmt.Println(topic)
 		kafka.SubscribeTopics(topic, subscriptionFunc)
 	}()
+
 	return UcbCallR
 }
 
@@ -515,7 +518,7 @@ func subscriptionFunc(content interface{}) {
 			salesReportID := salesReportStorage.Insert(UcbModel.SalesReport{
 				ScenarioID: result.Scenario,
 				PaperInputID: result.PaperInput,
-				Time: time.Now().Unix() / 1e6,
+				Time: time.Now().UnixNano() / 1e6,
 				HospitalSalesReportIDs: hospitalSalesReportIDs,
 				ProductSalesReportIDs: productSalesReportIDs,
 				RepresentativeSalesReportIDs: representativeSalesReportIDs,
@@ -559,7 +562,7 @@ func subscriptionFunc(content interface{}) {
 				assessmentReport := UcbModel.AssessmentReport {
 					SimplifyResultID: simplifyResultID,
 					ScenarioID: result.Scenario,
-					Time: time.Now().Unix() / 1e6,
+					Time: time.Now().UnixNano() / 1e6,
 					PaperInputID: result.PaperInput,
 				}
 

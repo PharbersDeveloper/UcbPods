@@ -9,7 +9,7 @@ import (
 type ScenarioResult struct {
 	ID               string        `json:"-"`
 	Id_              bson.ObjectId `json:"-" bson:"_id"`
-	QuotaAchievement int        `json:"quota-achievement" bson:"quota-achievement" mapstructure:"quota-achievement"`
+	QuotaAchievement float64        `json:"quota-achievement" bson:"quota-achievement" mapstructure:"quota-achievement"`
 
 	ScenarioID          string        `json:"scenario-id" bson:"scenario-id" mapstructure:"scenario-id"`
 	Scenario 			*Scenario			`json:"-"`

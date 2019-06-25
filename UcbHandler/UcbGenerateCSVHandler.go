@@ -11,20 +11,14 @@ import (
 	"github.com/alfredyang1986/BmServiceDef/BmDaemons"
 	"github.com/alfredyang1986/BmServiceDef/BmDaemons/BmMongodb"
 	"github.com/alfredyang1986/BmServiceDef/BmDaemons/BmRedis"
-	bmconfig "github.com/alfredyang1986/blackmirror/bmconfighandle"
-	"github.com/alfredyang1986/blackmirror/bmerror"
 	"github.com/alfredyang1986/blackmirror/bmkafka"
-	"github.com/confluentinc/confluent-kafka-go/kafka"
 	"github.com/julienschmidt/httprouter"
 	"github.com/manyminds/api2go"
 	"io/ioutil"
 	"net/http"
 	"os"
-	"os/signal"
 	"reflect"
 	"strconv"
-	"sync"
-	"syscall"
 	"time"
 )
 
@@ -82,15 +76,15 @@ func (h UcbGenerateCSVHandler) NewGenerateCSVHandler(args ...interface{}) UcbGen
 		}
 	}
 
-	bmkafka, _ := bmkafka.GetConfigInstance()
-	kafka, _ := GetConfigInstance2()
-	UcbGenerateCSV = UcbGenerateCSVHandler{Method: md, HttpMethod: hm, Args: ag, db: m, rd: r, xmpp: x, kafka: bmkafka }
+	kafka, _ := bmkafka.GetConfigInstance()
+	UcbGenerateCSV = UcbGenerateCSVHandler{Method: md, HttpMethod: hm, Args: ag, db: m, rd: r, xmpp: x, kafka: kafka }
 
 	go func() {
-		topic := []string{"UCBDownLoadTest"}
+		topic := kafka.Topics[len(kafka.Topics) -1:]
 		fmt.Println(topic)
 		kafka.SubscribeTopics(topic, subscriptionGenerateFunc)
 	}()
+
 	return UcbGenerateCSV
 }
 
@@ -192,7 +186,6 @@ func (h UcbGenerateCSVHandler) csvDataOut(paperId, accountId string, req api2go.
 	//papers := paperStorage.GetAll(req, -1, -1)
 	//paper := papers[len(papers) - 1]
 
-	// TODO @Alex前后端需要重新对接
 	paper, _ := paperStorage.GetOne(paperId)
 
 	req.QueryParams["ids"] = paper.SalesReportIDs
@@ -204,7 +197,6 @@ func (h UcbGenerateCSVHandler) csvDataOut(paperId, accountId string, req api2go.
 		req.QueryParams["ids"] = salesReport.HospitalSalesReportIDs
 		req.QueryParams["notEq[destConfigId]"] = []string{"-1"}
 		hospitalSalesReports := hospitalSalesReportStorage.GetAll(req, -1, -1)
-		fmt.Println(len(hospitalSalesReports))
 		if len(salesReport.PaperInputID) > 0 {
 			paperInput, _ := paperInputStorage.GetOne(salesReport.PaperInputID)
 
@@ -291,10 +283,8 @@ func (h UcbGenerateCSVHandler) csvDataOut(paperId, accountId string, req api2go.
 
 	fmt.Println(string(c))
 
-
-	//topic := h.kafka.Topics[0]
-	//fmt.Println(topic)
-	topic := "UCBDownLoadTest"
+	topic := h.kafka.Topics[len(h.kafka.Topics) -1]
+	fmt.Println(topic)
 	h.kafka.Produce(&topic, c)
 }
 
@@ -398,120 +388,4 @@ func subscriptionGenerateFunc(content interface{}) {
 		fmt.Println(result)
 		_ = h.xmpp.SendGroupMsg(h.Args[2], string(r))
 	}
-}
-
-
-/**
- * 一坨屎，不要看，等老铁把Kafka改成多实例在改回来，现在Consumer在一个项目中不能创建多个
- */
-type cfg bmkafka.BmKafkaConfig
-var e error
-var onceConfig sync.Once
-var config *cfg
-var consumer *kafka.Consumer
-var onceConsumer sync.Once
-
-// GetConsumerInstance get one KafkaConsumerInstance.
-func (bkc *cfg) GetConsumerInstance() (*kafka.Consumer, error) {
-	onceConsumer.Do(func() {
-		c, err := kafka.NewConsumer(&kafka.ConfigMap{
-			"bootstrap.servers": bkc.Broker,
-			"broker.address.family":    "v4",
-			"group.id":                 bkc.Group,
-			"session.timeout.ms":       6000,
-			//"auto.offset.reset":        "earliest",
-			"auto.offset.reset":        "latest",
-			"security.protocol":        "SSL", //默认使用SSL
-			"ssl.ca.location":          bkc.CaLocation,
-			"ssl.certificate.location": bkc.CaSignedLocation,
-			"ssl.key.location":         bkc.SslKeyLocation,
-			"ssl.key.password":         bkc.Pass,
-		})
-
-		if err != nil {
-			fmt.Printf("Failed to create consumer: %s\n", err)
-			e = err
-		} else {
-			fmt.Printf("Created Consumer %v\n", c)
-			consumer = c
-			e = nil
-		}
-
-		//err = c.SubscribeTopics(bkc.Topics, nil)
-
-	})
-	return consumer, e
-}
-
-func GetConfigInstance2() (*cfg, error) {
-	onceConfig.Do(func() {
-		configPath := os.Getenv("BM_KAFKA_CONF_HOME")
-		profileItems := bmconfig.BMGetConfigMap(configPath)
-		topics := make([]string, 0)
-		for _, t := range profileItems["Topics"].([]interface{}) {
-			topics = append(topics, t.(string))
-		}
-		config = &cfg {
-			Broker:              profileItems["Broker"].(string),
-			SchemaRepositoryUrl: profileItems["SchemaRepositoryUrl"].(string),
-			Group:               profileItems["Group"].(string),
-			CaLocation:          profileItems["CaLocation"].(string),
-			CaSignedLocation:    profileItems["CaSignedLocation"].(string),
-			SslKeyLocation:      profileItems["SslKeyLocation"].(string),
-			Pass:                profileItems["Pass"].(string),
-			Topics:              topics,
-		}
-		e = nil
-	})
-	return config, e
-}
-
-
-func (bkc *cfg) SubscribeTopics(topics []string, subscribeFunc func(interface{})) {
-	if len(bkc.Topics) == 0 {
-		panic("no Topics in config")
-	}
-	c, err := bkc.GetConsumerInstance()
-	bmerror.PanicError(err)
-	if len(topics) == 0 {
-		err = c.SubscribeTopics(bkc.Topics, nil)
-	} else {
-		err = c.SubscribeTopics(topics, nil)
-	}
-	bmerror.PanicError(err)
-
-	run := true
-	sigchan := make(chan os.Signal, 1)
-	signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)
-
-	for run == true {
-		select {
-		case sig := <-sigchan:
-			fmt.Printf("Caught signal %v: terminating\n", sig)
-			run = false
-		default:
-			ev := c.Poll(100)
-			if ev == nil {
-				continue
-			}
-
-			switch e := ev.(type) {
-			case *kafka.Message:
-				subscribeFunc(e.Value)
-				if e.Headers != nil {
-					fmt.Printf("%% Headers: %v\n", e.Headers)
-				}
-			case kafka.Error:
-				fmt.Fprintf(os.Stderr, "%% Error: %v: %v\n", e.Code(), e)
-				if e.Code() == kafka.ErrAllBrokersDown {
-					run = false
-				}
-			default:
-				continue
-			}
-		}
-	}
-
-	fmt.Printf("Closing consumer\n")
-	c.Close()
 }
