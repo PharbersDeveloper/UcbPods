@@ -421,7 +421,7 @@ func subscriptionFunc(content interface{}) {
 		"proposal-id": result.Proposal,
 		"paperInput-id": result.PaperInput,
 		"scenario-id": result.Scenario,
-		"time": strconv.FormatInt(time.Now().Unix(), 10),
+		"time": strconv.FormatInt(time.Now().UnixNano() / 1e6, 10),
 	}
 
 	if err != nil ||  result.Error != nil{
@@ -573,6 +573,22 @@ func subscriptionFunc(content interface{}) {
 			if len(assessmentReportID) > 0 {
 				paper.AssessmentReportIDs = append(paper.AssessmentReportIDs, assessmentReportID)
 			}
+
+
+			// TODO: @Alex自己留，这面等重构
+			var state int
+			for _, scenario := range scenarios {
+				if scenario.ID == result.Scenario {
+					if paper.TotalPhase == scenario.Phase {
+						state = 3
+					} else {
+						state = 2
+					}
+				}
+			}
+			paper.InputState = state
+			// TODO: @Alex 时间有问题存在UTC转CST问题，因为服务器的都是UTC，Golang默认也是读UTC，等Bug改完后整体做转换
+			paper.EndTime = time.Now().UnixNano() / 1e6
 
 			err = paperStorage.Update(*paper)
 			if err != nil {
