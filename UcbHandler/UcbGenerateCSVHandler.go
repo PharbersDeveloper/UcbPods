@@ -196,19 +196,19 @@ func (h UcbGenerateCSVHandler) csvDataOut(paperId, accountId string, req api2go.
 		var (
 			destConfigMap map[string]map[string]interface{}
 			goodsConfigMap map[string]map[string]interface{}
-			resourceConfigMap map[string]map[string]interface{}
+			//resourceConfigMap map[string]map[string]interface{}
 		)
 
 		destConfigMap = make(map[string]map[string]interface{})
 		goodsConfigMap = make(map[string]map[string]interface{})
-		resourceConfigMap = make(map[string]map[string]interface{})
+		//resourceConfigMap = make(map[string]map[string]interface{})
 
 		req.QueryParams = map[string][]string{}
 
 		req.QueryParams["scenario-id"] = []string{scenario.ID}
 		destConfigs := destConfigStorage.GetAll(req, -1, -1)
 		goodsConfigs := goodsConfigStorage.GetAll(req, -1, -1)
- 		resourceConfigs := resourceConfigStorage.GetAll(req, -1, -1)
+ 		//resourceConfigs := resourceConfigStorage.GetAll(req, -1, -1)
 
 		for _, destConfig := range destConfigs {
 			if destConfig.DestType == 1 {
@@ -227,13 +227,13 @@ func (h UcbGenerateCSVHandler) csvDataOut(paperId, accountId string, req api2go.
 			product, _ := productStorage.GetOne(productConfig.ProductID)
 			goodsConfigMap[goodsConfig.ID] = map[string]interface{}{"productName": product.Name}
 		}
-		for _, resourceConfig := range resourceConfigs {
-			if resourceConfig.ResourceType == 1 {
-				representativeConfig, _ := representativeConfigStorage.GetOne(resourceConfig.ResourceID)
-				representative, _ := representativeStorage.GetOne(representativeConfig.RepresentativeID)
-				resourceConfigMap[resourceConfig.ID] = map[string]interface{}{"representativeName": representative.Name}
-			}
-		}
+		//for _, resourceConfig := range resourceConfigs {
+		//	if resourceConfig.ResourceType == 1 {
+		//		representativeConfig, _ := representativeConfigStorage.GetOne(resourceConfig.ResourceID)
+		//		representative, _ := representativeStorage.GetOne(representativeConfig.RepresentativeID)
+		//		resourceConfigMap[representative.Name] = map[string]interface{}{"representativeName": representative.Name}
+		//	}
+		//}
 
  		req.QueryParams = map[string][]string{}
 
@@ -249,10 +249,11 @@ func (h UcbGenerateCSVHandler) csvDataOut(paperId, accountId string, req api2go.
 			req.QueryParams["ids"] = paperInput.BusinessinputIDs
 			businessInputs := businessInputStorage.GetAll(req, -1, -1)
 			for _, businessInput := range businessInputs {
-
+				resourceConfig, _ := resourceConfigStorage.GetOne(businessInput.ResourceConfigId)
+				repc, _ := representativeConfigStorage.GetOne(resourceConfig.ResourceID)
+				rep, _ := representativeStorage.GetOne(repc.RepresentativeID)
 				destConfig, dok := destConfigMap[businessInput.DestConfigId]
-				resourceConfig, rok := resourceConfigMap[businessInput.ResourceConfigId]
-				if dok && rok {
+				if dok {
 					req.QueryParams["ids"] = businessInput.GoodsInputIds
 					for _, goodsInput := range goodsInputStorage.GetAll(req, -1, -1) {
 						goodsConfig, gok := goodsConfigMap[goodsInput.GoodsConfigId]
@@ -271,7 +272,7 @@ func (h UcbGenerateCSVHandler) csvDataOut(paperId, accountId string, req api2go.
 
 							content := []string{scenario.Name, destConfig["cityName"].(string),
 								destConfig["hospitalName"].(string), destConfig["hospitalLevel"].(string),
-								resourceConfig["representativeName"].(string), goodsConfig["productName"].(string),
+								rep.Name, goodsConfig["productName"].(string),
 								drugEntranceInfo, strconv.Itoa(patientCount),
 								strconv.FormatFloat(goodsInput.Budget, 'f', -1, 32),
 								strconv.FormatFloat(goodsInput.SalesTarget,'f', -1, 32)}
@@ -285,12 +286,14 @@ func (h UcbGenerateCSVHandler) csvDataOut(paperId, accountId string, req api2go.
 
 			destConfig, dok := destConfigMap[hospitalSalesReport.DestConfigID]
 			goodsConfig, gok := goodsConfigMap[hospitalSalesReport.GoodsConfigID]
-			resourceConfig, rok := resourceConfigMap[hospitalSalesReport.ResourceConfigID]
+			resourceConfig, _ := resourceConfigStorage.GetOne(hospitalSalesReport.ResourceConfigID)
+			repc, _ := representativeConfigStorage.GetOne(resourceConfig.ResourceID)
+			rep, _ := representativeStorage.GetOne(repc.RepresentativeID)
 
-			if dok  && gok && rok{
+			if dok  && gok {
 				content := []string{scenario.Name, destConfig["cityName"].(string),
 					destConfig["hospitalName"].(string), destConfig["hospitalLevel"].(string),
-					resourceConfig["representativeName"].(string), goodsConfig["productName"].(string),
+					rep.Name, goodsConfig["productName"].(string),
 					hospitalSalesReport.DrugEntranceInfo,
 					strconv.Itoa(hospitalSalesReport.PatientCount),
 					strconv.FormatFloat(hospitalSalesReport.QuotaAchievement, 'f', -1, 32),
