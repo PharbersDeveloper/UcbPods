@@ -17,6 +17,7 @@ ENV GO111MODULE on
 #LABEL
 LABEL UcbPods.version="0.0.29" maintainer="Alex"
 
+
 # 下载kafka
 RUN git clone https://github.com/edenhill/librdkafka.git $GOPATH/librdkafka
 

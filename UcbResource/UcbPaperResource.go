@@ -283,7 +283,7 @@ func (s UcbPaperResource) Update(obj interface{}, r api2go.Request) (api2go.Resp
 }
 
 func (s UcbPaperResource) productCompeteLine(r api2go.Request) (api2go.Responder, error) {
-	r.QueryParams["orderby"] = []string{"time"}
+	//r.QueryParams["orderby"] = []string{"time"}
 	result := s.UcbPaperStorage.GetAll(r, -1, -1)
 	curr := result[len(result)-1:]
 
@@ -299,8 +299,8 @@ func (s UcbPaperResource) productCompeteLine(r api2go.Request) (api2go.Responder
 }
 
 func (s UcbPaperResource) productSalesReportSummary(r api2go.Request) (api2go.Responder, error) {
-	r.QueryParams["orderby"] = []string{"time"}
-	r.QueryParams["gte[input-state]"] = []string{"2"}
+	//r.QueryParams["orderby"] = []string{"time"}
+	//r.QueryParams["gte[input-state]"] = []string{"2"}
 	result := s.UcbPaperStorage.GetAll(r, -1, -1)
 	curr := result[len(result)-1:]
 
@@ -368,8 +368,8 @@ func (s UcbPaperResource) productSalesReportSummary(r api2go.Request) (api2go.Re
 }
 
 func (s UcbPaperResource) citySalesReportSummary(r api2go.Request) (api2go.Responder, error) {
-	r.QueryParams["orderby"] = []string{"time"}
-	r.QueryParams["gte[input-state]"] = []string{"2"}
+	//r.QueryParams["orderby"] = []string{"time"}
+	//r.QueryParams["gte[input-state]"] = []string{"2"}
 	result := s.UcbPaperStorage.GetAll(r, -1, -1)
 	curr := result[len(result)-1:]
 
@@ -426,8 +426,8 @@ func (s UcbPaperResource) citySalesReportSummary(r api2go.Request) (api2go.Respo
 }
 
 func (s UcbPaperResource) hospitalSalesReportSummary(r api2go.Request) (api2go.Responder, error){
-	r.QueryParams["orderby"] = []string{"time"}
-	r.QueryParams["gte[input-state]"] = []string{"2"}
+	//r.QueryParams["orderby"] = []string{"time"}
+	//r.QueryParams["gte[input-state]"] = []string{"2"}
 	result := s.UcbPaperStorage.GetAll(r, -1, -1)
 	curr := result[len(result)-1:]
 

@@ -189,6 +189,8 @@ func (c *Paper) GetConditionsBsonM(parameters map[string][]string) bson.M {
 			rst[k] = v[0]
 		case "account-id":
 			rst[k] = v[0]
+		case "paper-id":
+			rst["_id"] = bson.ObjectIdHex(v[0])
 		case "gte[input-state]":
 			r := map[string]interface{}{}
 			val, _ := strconv.ParseInt(v[0], 10, 64)
