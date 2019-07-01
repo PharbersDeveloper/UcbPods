@@ -145,10 +145,8 @@ func (s UcbPaperResource) FindAll(r api2go.Request) (api2go.Responder, error) {
 		return s.productSalesReportSummary(r)
 	} else if ctOk && chartType[0] == "city-sales-report-summary" { // 处理城市销售报告饼状图数据
 		return s.citySalesReportSummary(r)
-	} else if ctOk && chartType[0] == "representative-sales-report-summary" { // 处理代表报告饼状图数据
-		return s.representativeSalesReportSummary(r)
 	} else if ctOk && chartType[0] == "hospital-sales-report-summary" { // 处理医院报告饼状图数据
-		return s.representativeSalesReportSummary(r)
+		return s.hospitalSalesReportSummary(r)
 	}
 
 	if qok {
@@ -302,6 +300,7 @@ func (s UcbPaperResource) productCompeteLine(r api2go.Request) (api2go.Responder
 
 func (s UcbPaperResource) productSalesReportSummary(r api2go.Request) (api2go.Responder, error) {
 	r.QueryParams["orderby"] = []string{"time"}
+	r.QueryParams["gte[input-state]"] = []string{"2"}
 	result := s.UcbPaperStorage.GetAll(r, -1, -1)
 	curr := result[len(result)-1:]
 
@@ -370,6 +369,7 @@ func (s UcbPaperResource) productSalesReportSummary(r api2go.Request) (api2go.Re
 
 func (s UcbPaperResource) citySalesReportSummary(r api2go.Request) (api2go.Responder, error) {
 	r.QueryParams["orderby"] = []string{"time"}
+	r.QueryParams["gte[input-state]"] = []string{"2"}
 	result := s.UcbPaperStorage.GetAll(r, -1, -1)
 	curr := result[len(result)-1:]
 
@@ -425,8 +425,9 @@ func (s UcbPaperResource) citySalesReportSummary(r api2go.Request) (api2go.Respo
 	return &Response{Res: curr}, nil
 }
 
-func (s UcbPaperResource) representativeSalesReportSummary(r api2go.Request) (api2go.Responder, error){
+func (s UcbPaperResource) hospitalSalesReportSummary(r api2go.Request) (api2go.Responder, error){
 	r.QueryParams["orderby"] = []string{"time"}
+	r.QueryParams["gte[input-state]"] = []string{"2"}
 	result := s.UcbPaperStorage.GetAll(r, -1, -1)
 	curr := result[len(result)-1:]
 
@@ -462,25 +463,6 @@ func (s UcbPaperResource) representativeSalesReportSummary(r api2go.Request) (ap
 
 		r.QueryParams = map[string][]string{}
 
-		//for _, destConfig := range  destConfigs {
-		//	hospitalConfig, _:= s.UcbHospitalConfigStorage.GetOne(destConfig.DestID)
-		//	hospital, _ := s.UcbHospitalStorage.GetOne(hospitalConfig.HospitalID)
-		//	for _, hospitalSalesReport := range hospitalSalesReports {
-		//		if destConfig.ID == hospitalSalesReport.DestConfigID && hospital.HospitalLevel == "三级"{
-		//			salesTo3 = salesTo3 + hospitalSalesReport.Sales
-		//			contributionTo3 = contributionTo3 + hospitalSalesReport.SalesContribute
-		//		} else if destConfig.ID == hospitalSalesReport.DestConfigID && hospital.HospitalLevel == "二级" {
-		//			salesTo2 = salesTo2 + hospitalSalesReport.Sales
-		//			contributionTo2 = contributionTo2 + hospitalSalesReport.SalesContribute
-		//		} else if destConfig.ID == hospitalSalesReport.DestConfigID && hospital.HospitalLevel == "一级" {
-		//			salesTo1 = salesTo1 + hospitalSalesReport.Sales
-		//			contributionTo1 = contributionTo1 + hospitalSalesReport.SalesContribute
-		//		} else if hospitalSalesReport.DestConfigID == "-1" {
-		//			salesOut = salesOut + hospitalSalesReport.Sales
-		//			contributionOut = contributionOut + hospitalSalesReport.SalesContribute
-		//		}
-		//	}
-		//}
 		for _, hospitalSalesReport := range hospitalSalesReports {
 			if hospitalSalesReport.DestConfigID != "-1" {
 				destConfig, _ := s.UcbDestConfigStorage.GetOne(hospitalSalesReport.DestConfigID)

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/manyminds/api2go/jsonapi"
 	"gopkg.in/mgo.v2/bson"
+	"strconv"
 )
 
 type Paper struct {
@@ -188,6 +189,11 @@ func (c *Paper) GetConditionsBsonM(parameters map[string][]string) bson.M {
 			rst[k] = v[0]
 		case "account-id":
 			rst[k] = v[0]
+		case "gte[input-state]":
+			r := map[string]interface{}{}
+			val, _ := strconv.ParseInt(v[0], 10, 64)
+			r["$gte"] = val
+			rst["input-state"] = r
 		}
 	}
 	return rst
