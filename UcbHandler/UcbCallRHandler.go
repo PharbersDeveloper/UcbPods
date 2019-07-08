@@ -141,10 +141,13 @@ func (h UcbCallRHandler) CallRCalculate(w http.ResponseWriter, r *http.Request, 
 
 	var (
 		inputs []map[string]interface{}
-		histories []map[string]interface{}
+		histories map[string]interface{}
+		hospitals []map[string]interface{}
 		goodsConfigMappings []map[string]string
-		competitions []map[string]string
+		competitions []map[string]interface{}
 	)
+
+	histories = make(map[string]interface{})
 
 	scenarioStorage := UcbDataStorage.UcbScenarioStorage{}.NewScenarioStorage(mdb)
 	paperStorage := UcbDataStorage.UcbPaperStorage{}.NewPaperStorage(mdb)
@@ -164,7 +167,8 @@ func (h UcbCallRHandler) CallRCalculate(w http.ResponseWriter, r *http.Request, 
 	salesConfigStorage := UcbDataStorage.UcbSalesConfigStorage{}.NewSalesConfigStorage(mdb)
 
 	salesReportStorage := UcbDataStorage.UcbSalesReportStorage{}.NewSalesReportStorage(mdb)
-	hospitalSalesReport := UcbDataStorage.UcbHospitalSalesReportStorage{}.NewHospitalSalesReportStorage(mdb)
+	productReportStorage := UcbDataStorage.UcbProductSalesReportStorage{}.NewProductSalesReportStorage(mdb)
+	hospitalSalesReportStorage := UcbDataStorage.UcbHospitalSalesReportStorage{}.NewHospitalSalesReportStorage(mdb)
 
 	// 当前周期的所有产品
 	req.QueryParams["scenario-id"] = []string{scenarioId}
@@ -172,18 +176,10 @@ func (h UcbCallRHandler) CallRCalculate(w http.ResponseWriter, r *http.Request, 
 	for _, goodsConfig := range goodsConfigStorage.GetAll(req, -1,-1) {
 		productConfig, _ := productConfigStorage.GetOne(goodsConfig.GoodsID)
 		product, _ := productStorage.GetOne(productConfig.ProductID)
-		if productConfig.ProductType == 1 {
-			competitions = append(competitions, map[string]string{
-				"product-id" : goodsConfig.ID,
-				"product-name": product.Name,
-				"treatment-area": productConfig.TreatmentArea,
-			})
-		} else {
-			goodsConfigMappings = append(goodsConfigMappings, map[string]string{
-				goodsConfig.ID: product.Name,
-				"treatmentArea": productConfig.TreatmentArea,
-			})
-		}
+		goodsConfigMappings = append(goodsConfigMappings, map[string]string{
+			goodsConfig.ID: product.Name,
+			"treatmentArea": productConfig.TreatmentArea,
+		})
 	}
 	cleanQueryParams(&req)
 
@@ -259,7 +255,8 @@ func (h UcbCallRHandler) CallRCalculate(w http.ResponseWriter, r *http.Request, 
 	// 上4周期的医院销售报告
 	cleanQueryParams(&req)
 	req.QueryParams["ids"] = paper.SalesReportIDs[len(paper.SalesReportIDs) - 4:]
-	for _, salesReport := range salesReportStorage.GetAll(req, -1, -1) {
+	salesReports := salesReportStorage.GetAll(req, -1, -1)
+	for _, salesReport := range salesReports {
 
 		var businessInputMapping []map[string]interface{}
 
@@ -288,7 +285,7 @@ func (h UcbCallRHandler) CallRCalculate(w http.ResponseWriter, r *http.Request, 
 		scenarioMap["phase"] = scenario.Phase
 
 		req.QueryParams["ids"] = salesReport.HospitalSalesReportIDs
-		for _, hospitalSalesReport := range hospitalSalesReport.GetAll(req, -1, -1) {
+		for _, hospitalSalesReport := range hospitalSalesReportStorage.GetAll(req, -1, -1) {
 			hospitalMap := map[string]interface{}{}
 			if hospitalSalesReport.DestConfigID != "-1" {
 				destConfig, _ := destConfigStorage.GetOne(hospitalSalesReport.DestConfigID)
@@ -323,11 +320,33 @@ func (h UcbCallRHandler) CallRCalculate(w http.ResponseWriter, r *http.Request, 
 				hospitalMap["sales-quota"] = hospitalSalesReport.SalesQuota
 				hospitalMap["ytd-sales"] = hospitalSalesReport.YTDSales
 				hospitalMap["drug-entrance-info"] = hospitalSalesReport.DrugEntranceInfo
-				histories = append(histories, hospitalMap)
+				hospitals = append(hospitals, hospitalMap)
+			}
+		}
+
+	}
+
+	cleanQueryParams(&req)
+	for _, salesReport := range salesReports[len(salesReports) - 1:] {
+
+		req.QueryParams["ids"] = salesReport.ProductSalesReportIDs
+
+		for _, productSalesReport := range productReportStorage.GetAll(req, -1, -1) {
+			goodsConfig, _ := goodsConfigStorage.GetOne(productSalesReport.GoodsConfigID)
+			productConfig, _ :=productConfigStorage.GetOne(goodsConfig.GoodsID)
+			if productConfig.ProductType == 1 {
+				product, _ := productStorage.GetOne(productConfig.ProductID)
+				competitions = append(competitions, map[string]interface{}{
+					"product-id": goodsConfig.ID,
+					"product-name": product.Name,
+					"treatment-name": productConfig.TreatmentArea,
+					"share": productSalesReport.Share,
+				})
 			}
 		}
 	}
-
+	histories["hospitals"] = hospitals
+	histories["competitions"] = competitions
 
 	header := map[string]string{}
 	currentScenario := map[string]interface{}{}
@@ -342,7 +361,6 @@ func (h UcbCallRHandler) CallRCalculate(w http.ResponseWriter, r *http.Request, 
 	currentScenario["phase"] = sm.Phase
 
 	body["inputs"] = inputs
-	body["competitions"] = competitions
 	body["histories"] = histories
 
 	// 查询所有的周期
