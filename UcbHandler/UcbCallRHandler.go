@@ -432,199 +432,201 @@ func subscriptionFunc(content interface{}) {
 
 	err := json.Unmarshal(c, &result)
 
-	ctx := map[string]string {
-		"client-id": "5cbe7ab8f4ce4352ecb082a3",
-		"type": "calc",
-		"account-id": result.Account,
-		"proposal-id": result.Proposal,
-		"paperInput-id": result.PaperInput,
-		"scenario-id": result.Scenario,
-		"time": strconv.FormatInt(time.Now().UnixNano() / 1e6, 10),
-	}
+	if result.Header["application"] == "ucb" {
+		ctx := map[string]string {
+			"client-id": "5cbe7ab8f4ce4352ecb082a3",
+			"type": "calc",
+			"account-id": result.Account,
+			"proposal-id": result.Proposal,
+			"paperInput-id": result.PaperInput,
+			"scenario-id": result.Scenario,
+			"time": strconv.FormatInt(time.Now().UnixNano() / 1e6, 10),
+		}
 
-	if err != nil ||  result.Error != nil{
-		//panic("计算失败")
-		ctx["status"] = "no"
-		ctx["msg"] = "计算失败"
-		r, _ := json.Marshal(ctx)
-		fmt.Println(string(r))
-		_ = h.xmpp.SendGroupMsg(h.Args[0], string(r))
-		return
-	}
-
-	if len(c) > 2 {
-		var (
-			result resultStruct
-			hospitalSalesReport UcbModel.HospitalSalesReport
-			productSalesReport UcbModel.ProductSalesReport
-			representativeSalesReport UcbModel.RepresentativeSalesReport
-			citySalesReport UcbModel.CitySalesReport
-			scenarioResult UcbModel.ScenarioResult
-
-			hospitalSalesReportIDs []string
-			productSalesReportIDs []string
-			representativeSalesReportIDs []string
-			citySalesReportIDs []string
-			scenarioResultIDs []string
-
-			assessmentReportID string
-		)
-
-
-		err := json.Unmarshal(c, &result)
 		if err != nil ||  result.Error != nil{
 			//panic("计算失败")
+			ctx["status"] = "no"
+			ctx["msg"] = "计算失败"
+			r, _ := json.Marshal(ctx)
+			fmt.Println(string(r))
+			_ = h.xmpp.SendGroupMsg(h.Args[0], string(r))
 			return
 		}
 
-		mdb := []BmDaemons.BmDaemon{h.db}
+		if len(c) > 2 {
+			var (
+				result resultStruct
+				hospitalSalesReport UcbModel.HospitalSalesReport
+				productSalesReport UcbModel.ProductSalesReport
+				representativeSalesReport UcbModel.RepresentativeSalesReport
+				citySalesReport UcbModel.CitySalesReport
+				scenarioResult UcbModel.ScenarioResult
 
-		scenarioStorage := UcbDataStorage.UcbScenarioStorage{}.NewScenarioStorage(mdb)
-		hospitalSalesReportStorage := UcbDataStorage.UcbHospitalSalesReportStorage{}.NewHospitalSalesReportStorage(mdb)
-		productSalesReportStorage := UcbDataStorage.UcbProductSalesReportStorage{}.NewProductSalesReportStorage(mdb)
-		representativeSalesReportStorage := UcbDataStorage.UcbRepresentativeSalesReportStorage{}.NewRepresentativeSalesReportStorage(mdb)
-		citySalesReportStorage := UcbDataStorage.UcbCitySalesReportStorage{}.NewCitySalesReportStorage(mdb)
-		salesReportStorage := UcbDataStorage.UcbSalesReportStorage{}.NewSalesReportStorage(mdb)
-		paperStorage := UcbDataStorage.UcbPaperStorage{}.NewPaperStorage(mdb)
+				hospitalSalesReportIDs []string
+				productSalesReportIDs []string
+				representativeSalesReportIDs []string
+				citySalesReportIDs []string
+				scenarioResultIDs []string
 
-		levelStorage := UcbDataStorage.UcbLevelStorage{}.NewLevelStorage(mdb)
-		levelConfigStorage := UcbDataStorage.UcbLevelConfigStorage{}.NewLevelConfigStorage(mdb)
+				assessmentReportID string
+			)
 
-		scenarioResultStorage := UcbDataStorage.UcbScenarioResultStorage{}.NewScenarioResultStorage(mdb)
-		simplifyResultStorage := UcbDataStorage.UcbSimplifyResultStorage{}.NewSimplifyResultStorage(mdb)
-		assessmentReportStorage := UcbDataStorage.UcbAssessmentReportStorage{}.NewAssessmentReportStorage(mdb)
 
-		req := api2go.Request{
-			QueryParams: map[string][]string{},
-		}
-
-		req.QueryParams["proposal-id"] = []string{result.Proposal}
-		req.QueryParams["account-id"] = []string{result.Account}
-		req.QueryParams["orderby"] = []string{"time"}
-
-		papers := paperStorage.GetAll(req, -1, -1)
-		if len(papers) > 0 {
-			paper := papers[len(papers) - 1]
-
-			body := result.Body
-
-			hospitalSalesReports := body["hospitalSalesReports"].([]interface{})
-			productSalesReports := body["productSalesReports"].([]interface{})
-			representativeSalesReports := body["representativeSalesReports"].([]interface{})
-			citySalesReports := body["citySalesReports"].([]interface{})
-
-			for _, v := range hospitalSalesReports {
-				mapstructure.Decode(v, &hospitalSalesReport)
-				hospitalSalesReportIDs = append(hospitalSalesReportIDs, hospitalSalesReportStorage.Insert(hospitalSalesReport))
+			err := json.Unmarshal(c, &result)
+			if err != nil ||  result.Error != nil{
+				//panic("计算失败")
+				return
 			}
 
-			for _, v := range productSalesReports {
-				mapstructure.Decode(v, &productSalesReport)
-				productSalesReportIDs = append(productSalesReportIDs, productSalesReportStorage.Insert(productSalesReport))
+			mdb := []BmDaemons.BmDaemon{h.db}
+
+			scenarioStorage := UcbDataStorage.UcbScenarioStorage{}.NewScenarioStorage(mdb)
+			hospitalSalesReportStorage := UcbDataStorage.UcbHospitalSalesReportStorage{}.NewHospitalSalesReportStorage(mdb)
+			productSalesReportStorage := UcbDataStorage.UcbProductSalesReportStorage{}.NewProductSalesReportStorage(mdb)
+			representativeSalesReportStorage := UcbDataStorage.UcbRepresentativeSalesReportStorage{}.NewRepresentativeSalesReportStorage(mdb)
+			citySalesReportStorage := UcbDataStorage.UcbCitySalesReportStorage{}.NewCitySalesReportStorage(mdb)
+			salesReportStorage := UcbDataStorage.UcbSalesReportStorage{}.NewSalesReportStorage(mdb)
+			paperStorage := UcbDataStorage.UcbPaperStorage{}.NewPaperStorage(mdb)
+
+			levelStorage := UcbDataStorage.UcbLevelStorage{}.NewLevelStorage(mdb)
+			levelConfigStorage := UcbDataStorage.UcbLevelConfigStorage{}.NewLevelConfigStorage(mdb)
+
+			scenarioResultStorage := UcbDataStorage.UcbScenarioResultStorage{}.NewScenarioResultStorage(mdb)
+			simplifyResultStorage := UcbDataStorage.UcbSimplifyResultStorage{}.NewSimplifyResultStorage(mdb)
+			assessmentReportStorage := UcbDataStorage.UcbAssessmentReportStorage{}.NewAssessmentReportStorage(mdb)
+
+			req := api2go.Request{
+				QueryParams: map[string][]string{},
 			}
-
-			for _, v := range representativeSalesReports {
-				mapstructure.Decode(v, &representativeSalesReport)
-				representativeSalesReportIDs = append(representativeSalesReportIDs, representativeSalesReportStorage.Insert(representativeSalesReport))
-			}
-
-			for _, v := range citySalesReports {
-				mapstructure.Decode(v, &citySalesReport)
-				citySalesReportIDs = append(citySalesReportIDs, citySalesReportStorage.Insert(citySalesReport))
-			}
-
-			salesReportID := salesReportStorage.Insert(UcbModel.SalesReport{
-				ScenarioID: result.Scenario,
-				PaperInputID: result.PaperInput,
-				Time: time.Now().UnixNano() / 1e6,
-				HospitalSalesReportIDs: hospitalSalesReportIDs,
-				ProductSalesReportIDs: productSalesReportIDs,
-				RepresentativeSalesReportIDs: representativeSalesReportIDs,
-				CitySalesReportIDs: citySalesReportIDs,
-			})
-
-			paper.SalesReportIDs = append(paper.SalesReportIDs, salesReportID)
 
 			req.QueryParams["proposal-id"] = []string{result.Proposal}
-			scenarios := scenarioStorage.GetAll(req, -1,-1)
-			if s := scenarios[len(scenarios)-1]; s.ID == result.Scenario {
-				simplifyReport := body["simplifyReport"].(map[string]interface{})
-				level := simplifyReport["level"].(float64)
-				totalQuotaAchievement := simplifyReport["total-quota-achievement"].(float64)
-				scenarioResults := simplifyReport["scenarioResult"].([]interface{})
+			req.QueryParams["account-id"] = []string{result.Account}
+			req.QueryParams["orderby"] = []string{"time"}
 
-				req.QueryParams = map[string][]string{}
-				req.QueryParams["code"] = []string{strconv.FormatFloat(level, 'f', -1, 32),}
-				levelModels := levelStorage.GetAll(req, -1,-1)
-				levelModel := levelModels[len(levelModels)-1]
+			papers := paperStorage.GetAll(req, -1, -1)
+			if len(papers) > 0 {
+				paper := papers[len(papers) - 1]
 
-				req.QueryParams["code"] = []string{"6"} // 6 => UCB 测评报告
-				req.QueryParams["level-id"] = []string{levelModel.ID}
-				levelConfigs := levelConfigStorage.GetAll(req, -1,-1)
-				levelConfig := levelConfigs[len(levelModels) -1]
+				body := result.Body
 
-				for _, v := range scenarioResults {
-					m := v.(map[string]interface{})
-					mapstructure.Decode(m, &scenarioResult)
-					scenarioResultIDs = append(scenarioResultIDs, scenarioResultStorage.Insert(scenarioResult))
+				hospitalSalesReports := body["hospitalSalesReports"].([]interface{})
+				productSalesReports := body["productSalesReports"].([]interface{})
+				representativeSalesReports := body["representativeSalesReports"].([]interface{})
+				citySalesReports := body["citySalesReports"].([]interface{})
+
+				for _, v := range hospitalSalesReports {
+					mapstructure.Decode(v, &hospitalSalesReport)
+					hospitalSalesReportIDs = append(hospitalSalesReportIDs, hospitalSalesReportStorage.Insert(hospitalSalesReport))
 				}
 
-				simplifyResult := UcbModel.SimplifyResult {
-					ScenarioResultsIDs: scenarioResultIDs,
-					TotalQuotaAchievement: totalQuotaAchievement,
-					LevelConfigID: levelConfig.ID,
+				for _, v := range productSalesReports {
+					mapstructure.Decode(v, &productSalesReport)
+					productSalesReportIDs = append(productSalesReportIDs, productSalesReportStorage.Insert(productSalesReport))
 				}
 
-				simplifyResultID := simplifyResultStorage.Insert(simplifyResult)
+				for _, v := range representativeSalesReports {
+					mapstructure.Decode(v, &representativeSalesReport)
+					representativeSalesReportIDs = append(representativeSalesReportIDs, representativeSalesReportStorage.Insert(representativeSalesReport))
+				}
 
-				assessmentReport := UcbModel.AssessmentReport {
-					SimplifyResultID: simplifyResultID,
+				for _, v := range citySalesReports {
+					mapstructure.Decode(v, &citySalesReport)
+					citySalesReportIDs = append(citySalesReportIDs, citySalesReportStorage.Insert(citySalesReport))
+				}
+
+				salesReportID := salesReportStorage.Insert(UcbModel.SalesReport{
 					ScenarioID: result.Scenario,
-					Time: time.Now().UnixNano() / 1e6,
 					PaperInputID: result.PaperInput,
+					Time: time.Now().UnixNano() / 1e6,
+					HospitalSalesReportIDs: hospitalSalesReportIDs,
+					ProductSalesReportIDs: productSalesReportIDs,
+					RepresentativeSalesReportIDs: representativeSalesReportIDs,
+					CitySalesReportIDs: citySalesReportIDs,
+				})
+
+				paper.SalesReportIDs = append(paper.SalesReportIDs, salesReportID)
+
+				req.QueryParams["proposal-id"] = []string{result.Proposal}
+				scenarios := scenarioStorage.GetAll(req, -1,-1)
+				if s := scenarios[len(scenarios)-1]; s.ID == result.Scenario {
+					simplifyReport := body["simplifyReport"].(map[string]interface{})
+					level := simplifyReport["level"].(float64)
+					totalQuotaAchievement := simplifyReport["total-quota-achievement"].(float64)
+					scenarioResults := simplifyReport["scenarioResult"].([]interface{})
+
+					req.QueryParams = map[string][]string{}
+					req.QueryParams["code"] = []string{strconv.FormatFloat(level, 'f', -1, 32),}
+					levelModels := levelStorage.GetAll(req, -1,-1)
+					levelModel := levelModels[len(levelModels)-1]
+
+					req.QueryParams["code"] = []string{"6"} // 6 => UCB 测评报告
+					req.QueryParams["level-id"] = []string{levelModel.ID}
+					levelConfigs := levelConfigStorage.GetAll(req, -1,-1)
+					levelConfig := levelConfigs[len(levelModels) -1]
+
+					for _, v := range scenarioResults {
+						m := v.(map[string]interface{})
+						mapstructure.Decode(m, &scenarioResult)
+						scenarioResultIDs = append(scenarioResultIDs, scenarioResultStorage.Insert(scenarioResult))
+					}
+
+					simplifyResult := UcbModel.SimplifyResult {
+						ScenarioResultsIDs: scenarioResultIDs,
+						TotalQuotaAchievement: totalQuotaAchievement,
+						LevelConfigID: levelConfig.ID,
+					}
+
+					simplifyResultID := simplifyResultStorage.Insert(simplifyResult)
+
+					assessmentReport := UcbModel.AssessmentReport {
+						SimplifyResultID: simplifyResultID,
+						ScenarioID: result.Scenario,
+						Time: time.Now().UnixNano() / 1e6,
+						PaperInputID: result.PaperInput,
+					}
+
+					assessmentReportID = assessmentReportStorage.Insert(assessmentReport)
+
 				}
 
-				assessmentReportID = assessmentReportStorage.Insert(assessmentReport)
-
-			}
-
-			if len(assessmentReportID) > 0 {
-				paper.AssessmentReportIDs = append(paper.AssessmentReportIDs, assessmentReportID)
-			}
+				if len(assessmentReportID) > 0 {
+					paper.AssessmentReportIDs = append(paper.AssessmentReportIDs, assessmentReportID)
+				}
 
 
-			// TODO: @Alex自己留，这面等重构
-			var state int
-			for _, scenario := range scenarios {
-				if scenario.ID == result.Scenario {
-					if paper.TotalPhase == scenario.Phase {
-						state = 3
-					} else {
-						state = 2
+				// TODO: @Alex自己留，这面等重构
+				var state int
+				for _, scenario := range scenarios {
+					if scenario.ID == result.Scenario {
+						if paper.TotalPhase == scenario.Phase {
+							state = 3
+						} else {
+							state = 2
+						}
 					}
 				}
+				paper.InputState = state
+				// TODO: @Alex 时间有问题存在UTC转CST问题，因为服务器的都是UTC，Golang默认也是读UTC，等Bug改完后整体做转换
+				paper.EndTime = time.Now().UnixNano() / 1e6
+
+				err = paperStorage.Update(*paper)
+				if err != nil {
+					panic("更新Paper失败")
+				}
+				ctx["status"] = "ok"
+				ctx["msg"] = "计算成功"
+
+				r, _ := json.Marshal(ctx)
+				fmt.Println(string(r))
+				_ = h.xmpp.SendGroupMsg(h.Args[0], string(r))
+			} else {
+				ctx["status"] = "no"
+				ctx["msg"] = "计算失败，出现异常！"
+
+				r, _ := json.Marshal(ctx)
+				fmt.Println(string(r))
+				_ = h.xmpp.SendGroupMsg(h.Args[0], string(r))
 			}
-			paper.InputState = state
-			// TODO: @Alex 时间有问题存在UTC转CST问题，因为服务器的都是UTC，Golang默认也是读UTC，等Bug改完后整体做转换
-			paper.EndTime = time.Now().UnixNano() / 1e6
-
-			err = paperStorage.Update(*paper)
-			if err != nil {
-				panic("更新Paper失败")
-			}
-			ctx["status"] = "ok"
-			ctx["msg"] = "计算成功"
-
-			r, _ := json.Marshal(ctx)
-			fmt.Println(string(r))
-			_ = h.xmpp.SendGroupMsg(h.Args[0], string(r))
-		} else {
-			ctx["status"] = "no"
-			ctx["msg"] = "计算失败，出现异常！"
-
-			r, _ := json.Marshal(ctx)
-			fmt.Println(string(r))
-			_ = h.xmpp.SendGroupMsg(h.Args[0], string(r))
 		}
 	}
 }
